@@ -1,0 +1,37 @@
+apiVersion: build.openshift.io/v1
+kind: BuildConfig
+metadata:
+  name: geotrack-api
+  namespace: geotrack
+  labels:
+    app.kubernetes.io/name: geotrack-api
+    app.kubernetes.io/part-of: geotrack
+spec:
+  source:
+    type: Git
+    git:
+      uri: https://github.com/geotrack/geotrack.git
+      ref: main
+    contextDir: geotrack-api
+  strategy:
+    type: Docker
+    dockerStrategy:
+      dockerfilePath: src/main/docker/Dockerfile.jvm
+  output:
+    to:
+      kind: ImageStreamTag
+      name: geotrack-api:latest
+  triggers:
+    - type: ConfigChange
+    - type: GitHub
+      github:
+        secretReference:
+          name: geotrack-github-webhook
+  resources:
+    limits:
+      cpu: "2"
+      memory: 2Gi
+    requests:
+      cpu: 500m
+      memory: 1Gi
+  runPolicy: Serial

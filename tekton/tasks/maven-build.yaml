@@ -1,0 +1,58 @@
+apiVersion: tekton.dev/v1
+kind: Task
+metadata:
+  name: geotrack-maven-build
+  namespace: geotrack
+  labels:
+    app.kubernetes.io/part-of: geotrack
+spec:
+  params:
+    - name: GOALS
+      type: array
+      description: Maven goals to execute
+      default:
+        - clean
+        - verify
+    - name: MAVEN_IMAGE
+      type: string
+      default: maven:3.9-eclipse-temurin-21
+    - name: EXTRA_ARGS
+      type: array
+      default:
+        - -DskipTests=false
+        - -Dmaven.repo.local=$(workspaces.source.path)/.m2
+  workspaces:
+    - name: source
+      description: Source code workspace
+    - name: maven-settings
+      description: Maven settings.xml
+      optional: true
+  steps:
+    - name: maven-build
+      image: $(params.MAVEN_IMAGE)
+      workingDir: $(workspaces.source.path)
+      args:
+        - $(params.GOALS[*])
+        - $(params.EXTRA_ARGS[*])
+      command:
+        - mvn
+      env:
+        - name: MAVEN_OPTS
+          value: "-Xmx1024m -XX:+UseG1GC"
+      resources:
+        requests:
+          cpu: 500m
+          memory: 1Gi
+        limits:
+          cpu: "2"
+          memory: 2Gi
+      volumeMounts:
+        - name: maven-settings
+          mountPath: /root/.m2/settings.xml
+          subPath: settings.xml
+          readOnly: true
+  volumes:
+    - name: maven-settings
+      configMap:
+        name: maven-settings
+        optional: true

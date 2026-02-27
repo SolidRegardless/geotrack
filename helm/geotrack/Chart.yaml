@@ -1,0 +1,17 @@
+apiVersion: v2
+name: geotrack
+description: GeoTrack - Real-time geospatial tracking platform
+type: application
+version: 0.1.0
+appVersion: "1.0.0"
+keywords:
+  - geospatial
+  - tracking
+  - quarkus
+  - kafka
+  - postgis
+maintainers:
+  - name: GeoTrack Team
+home: https://github.com/geotrack/geotrack
+sources:
+  - https://github.com/geotrack/geotrack

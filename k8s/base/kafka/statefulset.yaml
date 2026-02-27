@@ -1,0 +1,78 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: geotrack-kafka
+  namespace: geotrack
+  labels:
+    app.kubernetes.io/name: geotrack-kafka
+    app.kubernetes.io/component: messaging
+    app.kubernetes.io/part-of: geotrack
+spec:
+  serviceName: geotrack-kafka
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: geotrack-kafka
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: geotrack-kafka
+        app.kubernetes.io/component: messaging
+        app.kubernetes.io/part-of: geotrack
+    spec:
+      securityContext:
+        fsGroup: 101
+      containers:
+        - name: redpanda
+          image: docker.redpanda.com/redpandadata/redpanda:latest
+          args:
+            - redpanda
+            - start
+            - --smp=1
+            - --memory=1G
+            - --reserve-memory=0M
+            - --overprovisioned
+            - --node-id=0
+            - --kafka-addr=internal://0.0.0.0:9092,external://0.0.0.0:29092
+            - --advertise-kafka-addr=internal://geotrack-kafka-0.geotrack-kafka.geotrack.svc.cluster.local:9092,external://localhost:29092
+          ports:
+            - name: kafka
+              containerPort: 9092
+              protocol: TCP
+            - name: kafka-external
+              containerPort: 29092
+              protocol: TCP
+            - name: admin
+              containerPort: 9644
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /v1/status/ready
+              port: admin
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /v1/status/ready
+              port: admin
+            initialDelaySeconds: 10
+            periodSeconds: 5
+          resources:
+            requests:
+              cpu: 500m
+              memory: 1Gi
+            limits:
+              cpu: "2"
+              memory: 2Gi
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/redpanda/data
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        resources:
+          requests:
+            storage: 50Gi

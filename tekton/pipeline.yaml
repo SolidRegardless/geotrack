@@ -1,0 +1,155 @@
+apiVersion: tekton.dev/v1
+kind: Pipeline
+metadata:
+  name: geotrack-ci-cd
+  namespace: geotrack
+  labels:
+    app.kubernetes.io/part-of: geotrack
+spec:
+  params:
+    - name: git-url
+      type: string
+      description: Git repository URL
+    - name: git-revision
+      type: string
+      default: main
+    - name: image-registry
+      type: string
+      default: ghcr.io/geotrack
+    - name: image-name
+      type: string
+      default: geotrack-api
+    - name: image-tag
+      type: string
+      default: latest
+  workspaces:
+    - name: shared-workspace
+    - name: maven-settings
+    - name: docker-credentials
+  tasks:
+    - name: git-clone
+      taskRef:
+        name: git-clone
+        kind: ClusterTask
+      params:
+        - name: url
+          value: $(params.git-url)
+        - name: revision
+          value: $(params.git-revision)
+      workspaces:
+        - name: output
+          workspace: shared-workspace
+
+    - name: maven-build
+      taskRef:
+        name: geotrack-maven-build
+      runAfter:
+        - git-clone
+      params:
+        - name: GOALS
+          value:
+            - clean
+            - verify
+      workspaces:
+        - name: source
+          workspace: shared-workspace
+        - name: maven-settings
+          workspace: maven-settings
+
+    - name: test
+      taskRef:
+        name: geotrack-maven-build
+      runAfter:
+        - maven-build
+      params:
+        - name: GOALS
+          value:
+            - test
+            - -Pintegration-tests
+      workspaces:
+        - name: source
+          workspace: shared-workspace
+        - name: maven-settings
+          workspace: maven-settings
+
+    - name: sonarqube-scan
+      taskRef:
+        name: sonarqube-scanner
+        kind: ClusterTask
+      runAfter:
+        - test
+      params:
+        - name: SONAR_HOST_URL
+          value: https://sonarqube.geotrack.dev
+        - name: SONAR_PROJECT_KEY
+          value: geotrack
+      workspaces:
+        - name: source
+          workspace: shared-workspace
+
+    - name: buildah
+      taskRef:
+        name: buildah
+        kind: ClusterTask
+      runAfter:
+        - sonarqube-scan
+      params:
+        - name: IMAGE
+          value: $(params.image-registry)/$(params.image-name):$(params.image-tag)
+        - name: DOCKERFILE
+          value: src/main/docker/Dockerfile.jvm
+      workspaces:
+        - name: source
+          workspace: shared-workspace
+        - name: dockerconfig
+          workspace: docker-credentials
+
+    - name: trivy-scan
+      taskRef:
+        name: trivy-scanner
+        kind: ClusterTask
+      runAfter:
+        - buildah
+      params:
+        - name: IMAGE
+          value: $(params.image-registry)/$(params.image-name):$(params.image-tag)
+        - name: SEVERITY
+          value: HIGH,CRITICAL
+
+    - name: push-image
+      taskRef:
+        name: buildah
+        kind: ClusterTask
+      runAfter:
+        - trivy-scan
+      params:
+        - name: IMAGE
+          value: $(params.image-registry)/$(params.image-name):$(params.image-tag)
+        - name: DOCKERFILE
+          value: src/main/docker/Dockerfile.jvm
+        - name: PUSH_EXTRA_ARGS
+          value: ""
+      workspaces:
+        - name: source
+          workspace: shared-workspace
+        - name: dockerconfig
+          workspace: docker-credentials
+
+    - name: update-manifests
+      taskRef:
+        name: git-cli
+        kind: ClusterTask
+      runAfter:
+        - push-image
+      params:
+        - name: GIT_SCRIPT
+          value: |
+            git clone $(params.git-url) /tmp/manifests
+            cd /tmp/manifests
+            sed -i "s|image:.*$(params.image-name).*|image: $(params.image-registry)/$(params.image-name):$(params.image-tag)|g" k8s/base/api-service/deployment.yaml
+            git add -A
+            git commit -m "chore: update $(params.image-name) image to $(params.image-tag)"
+            git push origin main
+      workspaces:
+        - name: source
+          workspace: shared-workspace

@@ -1,0 +1,15 @@
+apiVersion: image.openshift.io/v1
+kind: ImageStream
+metadata:
+  name: geotrack-api
+  namespace: geotrack
+  labels:
+    app.kubernetes.io/name: geotrack-api
+    app.kubernetes.io/part-of: geotrack
+spec:
+  lookupPolicy:
+    local: true
+  tags:
+    - name: latest
+      referencePolicy:
+        type: Local
