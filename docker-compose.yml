@@ -1,0 +1,42 @@
+# =============================================================================
+# GeoTrack Local Development Stack
+# For when you want explicit control (instead of Quarkus Dev Services)
+# =============================================================================
+version: '3.8'
+
+services:
+  postgres:
+    image: postgis/postgis:16-3.4
+    container_name: geotrack-postgres
+    environment:
+      POSTGRES_DB: geotrack
+      POSTGRES_USER: geotrack
+      POSTGRES_PASSWORD: geotrack
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  kafka:
+    image: redpandadata/redpanda:v24.1.1
+    container_name: geotrack-kafka
+    command:
+      - redpanda
+      - start
+      - --smp=1
+      - --memory=512M
+      - --overprovisioned
+      - --kafka-addr=PLAINTEXT://0.0.0.0:29092,OUTSIDE://0.0.0.0:9092
+      - --advertise-kafka-addr=PLAINTEXT://kafka:29092,OUTSIDE://localhost:9092
+    ports:
+      - "9092:9092"
+      - "29092:29092"
+
+  redis:
+    image: redis:7-alpine
+    container_name: geotrack-redis
+    ports:
+      - "6379:6379"
+
+volumes:
+  postgres_data:
