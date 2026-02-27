@@ -1,1 +1,41 @@
-<p>dashboard works!</p>
+<div class="dashboard-page">
+  <h2>Dashboard</h2>
+
+  <div class="kpi-grid">
+    <div class="kpi-card" *ngFor="let kpi of kpis">
+      <span class="kpi-icon">{{ kpi.icon }}</span>
+      <div class="kpi-info">
+        <span class="kpi-value">{{ kpi.value }}</span>
+        <span class="kpi-label">{{ kpi.label }}</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="recent-section">
+    <h3>Recent Alerts</h3>
+    <table class="alert-table" *ngIf="recentAlerts.length > 0">
+      <thead>
+        <tr>
+          <th>Severity</th>
+          <th>Type</th>
+          <th>Message</th>
+          <th>Asset</th>
+          <th>Time</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let alert of recentAlerts">
+          <td>
+            <span class="severity-dot" [style.background]="severityColor(alert.severity)"></span>
+            {{ alert.severity }}
+          </td>
+          <td>{{ alert.alertType }}</td>
+          <td>{{ alert.message }}</td>
+          <td>{{ alert.assetId }}</td>
+          <td>{{ alert.createdAt | date:'short' }}</td>
+        </tr>
+      </tbody>
+    </table>
+    <p class="empty" *ngIf="recentAlerts.length === 0">No recent alerts</p>
+  </div>
+</div>

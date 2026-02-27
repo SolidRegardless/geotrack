@@ -1,1 +1,68 @@
-<p>asset-list works!</p>
+<div class="asset-list-page">
+  <div class="page-header">
+    <h2>Assets</h2>
+    <button class="btn-accent" (click)="showCreateForm = !showCreateForm">
+      {{ showCreateForm ? 'Cancel' : '+ Create Asset' }}
+    </button>
+  </div>
+
+  <!-- Create Form -->
+  <div class="create-form" *ngIf="showCreateForm">
+    <input type="text" [(ngModel)]="newAssetName" placeholder="Asset name" class="input" />
+    <select [(ngModel)]="newAssetType" class="input">
+      <option *ngFor="let t of assetTypes" [value]="t">{{ t }}</option>
+    </select>
+    <button class="btn-accent" (click)="createAsset()">Create</button>
+  </div>
+
+  <!-- Filters -->
+  <div class="filters">
+    <select [(ngModel)]="typeFilter" (ngModelChange)="onFilterChange()" class="input">
+      <option value="">All Types</option>
+      <option *ngFor="let t of assetTypes" [value]="t">{{ t }}</option>
+    </select>
+    <select [(ngModel)]="statusFilter" (ngModelChange)="onFilterChange()" class="input">
+      <option value="">All Statuses</option>
+      <option *ngFor="let s of assetStatuses" [value]="s">{{ s }}</option>
+    </select>
+  </div>
+
+  <!-- Table -->
+  <table class="asset-table">
+    <thead>
+      <tr>
+        <th>Name</th>
+        <th>Type</th>
+        <th>Status</th>
+        <th>Created</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let asset of filteredAssets"
+          (click)="selectAsset(asset)"
+          [class.selected]="selectedAsset?.id === asset.id">
+        <td>{{ asset.name }}</td>
+        <td><span class="badge type-badge">{{ asset.type }}</span></td>
+        <td><span class="badge status-badge" [attr.data-status]="asset.status">{{ asset.status }}</span></td>
+        <td>{{ asset.createdAt | date:'medium' }}</td>
+        <td>
+          <button class="btn-danger" (click)="deleteAsset($event, asset)">Delete</button>
+        </td>
+      </tr>
+      <tr *ngIf="filteredAssets.length === 0">
+        <td colspan="5" class="empty">No assets found</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- Detail Panel -->
+  <div class="detail-panel" *ngIf="selectedAsset">
+    <h3>{{ selectedAsset.name }}</h3>
+    <p><strong>ID:</strong> {{ selectedAsset.id }}</p>
+    <p><strong>Type:</strong> {{ selectedAsset.type }}</p>
+    <p><strong>Status:</strong> {{ selectedAsset.status }}</p>
+    <p><strong>Created:</strong> {{ selectedAsset.createdAt | date:'full' }}</p>
+    <p><strong>Updated:</strong> {{ selectedAsset.updatedAt | date:'full' }}</p>
+  </div>
+</div>

@@ -1,1 +1,31 @@
-<p>alert-list works!</p>
+<div class="alert-list-page">
+  <div class="page-header">
+    <h2>Alerts</h2>
+    <button class="btn-filter" [class.active]="showUnacknowledgedOnly" (click)="toggleFilter()">
+      {{ showUnacknowledgedOnly ? 'Show All' : 'Unacknowledged Only' }}
+    </button>
+  </div>
+
+  <div class="alert-feed">
+    <div class="alert-card" *ngFor="let alert of filteredAlerts" [class.acknowledged]="alert.acknowledged">
+      <div class="alert-header">
+        <span class="severity-badge" [style.background]="severityColor(alert.severity)">
+          {{ alert.severity }}
+        </span>
+        <span class="alert-type">{{ alert.alertType }}</span>
+        <span class="alert-time">{{ alert.createdAt | date:'short' }}</span>
+      </div>
+      <div class="alert-body">
+        <p class="alert-message">{{ alert.message }}</p>
+        <p class="alert-meta">Asset: {{ alert.assetId }}</p>
+      </div>
+      <div class="alert-actions" *ngIf="!alert.acknowledged">
+        <button class="btn-ack" (click)="acknowledge(alert, $event)">Acknowledge</button>
+      </div>
+    </div>
+
+    <div class="empty" *ngIf="filteredAlerts.length === 0">
+      No alerts to display
+    </div>
+  </div>
+</div>
