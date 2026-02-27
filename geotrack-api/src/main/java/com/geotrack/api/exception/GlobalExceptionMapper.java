@@ -19,6 +19,8 @@ public class GlobalExceptionMapper implements ExceptionMapper<Exception> {
     public Response toResponse(Exception exception) {
         // Use Java 21 pattern matching switch for clean exception dispatch
         return switch (exception) {
+            case jakarta.ws.rs.NotFoundException e ->
+                    error(Response.Status.NOT_FOUND, "Not Found", e.getMessage());
             case AssetService.AssetNotFoundException e ->
                     error(Response.Status.NOT_FOUND, "Not Found", e.getMessage());
             case IllegalArgumentException e ->

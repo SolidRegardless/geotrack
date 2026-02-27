@@ -38,7 +38,17 @@ export class WebSocketService implements OnDestroy {
 
     this.positionUpdates$ = shared$.pipe(
       filter(event => event.type === 'POSITION_UPDATED'),
-      map(event => event.payload as AssetPosition)
+      map(event => {
+        const payload = event.payload as any;
+        // PositionUpdated event nests the Position inside a 'position' field
+        if (payload.position && payload.position.latitude !== undefined) {
+          return {
+            ...payload.position,
+            assetId: payload.assetId || payload.position.assetId
+          } as AssetPosition;
+        }
+        return payload as AssetPosition;
+      })
     );
 
     this.alerts$ = shared$.pipe(

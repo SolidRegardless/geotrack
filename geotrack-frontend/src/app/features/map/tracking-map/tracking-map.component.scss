@@ -35,6 +35,16 @@
   }
 }
 
+// Rotated marker icons — strip default Leaflet div-icon styling
+:host ::ng-deep .rotated-marker {
+  background: none !important;
+  border: none !important;
+
+  img {
+    transition: transform 0.8s ease;
+  }
+}
+
 // Popup styling
 :host ::ng-deep {
   .asset-popup {

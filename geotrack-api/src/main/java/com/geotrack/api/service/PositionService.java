@@ -76,9 +76,12 @@ public class PositionService {
     }
 
     private PositionResponse toResponse(PositionEntity entity) {
+        // Use original string ID (stored in source) if available, else UUID
+        String displayAssetId = entity.source != null && !entity.source.isBlank()
+                ? entity.source : entity.assetId.toString();
         return new PositionResponse(
                 entity.id,
-                entity.assetId.toString(),
+                displayAssetId,
                 entity.getLatitude(),
                 entity.getLongitude(),
                 entity.altitude != null ? entity.altitude : 0,

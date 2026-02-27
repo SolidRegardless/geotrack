@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, ChangeDetectionStrategy } from '@angular/core';
+import { Component, OnInit, OnDestroy, ChangeDetectionStrategy, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Subject, takeUntil } from 'rxjs';
 import * as L from 'leaflet';
@@ -31,38 +31,66 @@ export class TrackingMapComponent implements OnInit, OnDestroy {
   connectionStatus = false;
   assetCount = 0;
 
-  // Custom icons for different asset types
-  private icons: Record<string, L.Icon> = {
-    VEHICLE: L.icon({
-      iconUrl: 'assets/markers/vehicle.png',
-      iconSize: [32, 32],
-      iconAnchor: [16, 32],
-      popupAnchor: [0, -32]
-    }),
-    DRONE: L.icon({
-      iconUrl: 'assets/markers/drone.png',
-      iconSize: [32, 32],
-      iconAnchor: [16, 16],
-      popupAnchor: [0, -16]
-    }),
-    VESSEL: L.icon({
-      iconUrl: 'assets/markers/vessel.png',
-      iconSize: [32, 32],
-      iconAnchor: [16, 32],
-      popupAnchor: [0, -32]
-    }),
-    DEFAULT: L.icon({
-      iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
-      shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
-      iconSize: [25, 41],
-      iconAnchor: [12, 41],
-      popupAnchor: [1, -34]
-    })
+  // SVG paths for each asset type (icons point NORTH, rotated by heading)
+  private readonly iconSvgPaths: Record<string, string> = {
+    BUS: 'assets/markers/bus.svg',
+    TRAIN: 'assets/markers/train.svg',
+    PLANE: 'assets/markers/plane.svg',
+    BOAT: 'assets/markers/boat.svg'
   };
+
+  private readonly defaultIcon = L.icon({
+    iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+    shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+    iconSize: [25, 41],
+    iconAnchor: [12, 41],
+    popupAnchor: [1, -34]
+  });
+
+  /** Create a DivIcon with an <img> rotated to the given heading */
+  private createRotatedIcon(svgPath: string, heading: number, size: number = 32): L.DivIcon {
+    return L.divIcon({
+      html: `<img src="${svgPath}" style="width:${size}px;height:${size}px;transform:rotate(${heading}deg);transform-origin:center;" />`,
+      iconSize: [size, size],
+      iconAnchor: [size / 2, size / 2],
+      popupAnchor: [0, -size / 2],
+      className: 'rotated-marker'
+    });
+  }
+
+  /** Resolve asset type key from assetId naming convention */
+  private getAssetTypeKey(assetId: string): string | null {
+    const id = assetId.toUpperCase();
+    if (id.includes('BUS')) return 'BUS';
+    if (id.includes('TRAIN')) return 'TRAIN';
+    if (id.includes('PLANE')) return 'PLANE';
+    if (id.includes('BOAT')) return 'BOAT';
+    return null;
+  }
+
+  /** Get the appropriate icon (rotated DivIcon or default) */
+  private getIconForAsset(assetId: string, heading: number = 0): L.Icon | L.DivIcon {
+    const key = this.getAssetTypeKey(assetId);
+    if (key && this.iconSvgPaths[key]) {
+      return this.createRotatedIcon(this.iconSvgPaths[key], heading);
+    }
+    return this.defaultIcon;
+  }
+
+  /** Get trail colour for asset type */
+  private getTrailColor(assetId: string): string {
+    const id = assetId.toUpperCase();
+    if (id.includes('BUS')) return '#2196F3';
+    if (id.includes('TRAIN')) return '#4CAF50';
+    if (id.includes('PLANE')) return '#F44336';
+    if (id.includes('BOAT')) return '#00BCD4';
+    return '#3388ff';
+  }
 
   constructor(
     private apiService: ApiService,
-    private wsService: WebSocketService
+    private wsService: WebSocketService,
+    private cdr: ChangeDetectorRef
   ) {}
 
   ngOnInit(): void {
@@ -73,7 +101,10 @@ export class TrackingMapComponent implements OnInit, OnDestroy {
 
     this.wsService.connected$
       .pipe(takeUntil(this.destroy$))
-      .subscribe(status => this.connectionStatus = status);
+      .subscribe(status => {
+        this.connectionStatus = status;
+        this.cdr.markForCheck();
+      });
   }
 
   private initMap(): void {
@@ -115,6 +146,7 @@ export class TrackingMapComponent implements OnInit, OnDestroy {
       next: (positions) => {
         positions.forEach(pos => this.updateMarker(pos));
         this.assetCount = positions.length;
+        this.cdr.markForCheck();
 
         // Fit map to show all assets
         if (positions.length > 0) {
@@ -132,6 +164,7 @@ export class TrackingMapComponent implements OnInit, OnDestroy {
       .subscribe(position => {
         this.updateMarker(position);
         this.assetCount = this.markers.size;
+        this.cdr.markForCheck();
       });
   }
 
@@ -153,12 +186,18 @@ export class TrackingMapComponent implements OnInit, OnDestroy {
       existing.setLatLng(latLng);
       existing.setPopupContent(this.createPopupHtml(position));
 
+      // Rotate the icon to match heading
+      const iconEl = existing.getElement()?.querySelector('img') as HTMLImageElement;
+      if (iconEl) {
+        iconEl.style.transform = `rotate(${position.heading}deg)`;
+      }
+
       // Update route trail
       this.appendToRoute(position);
     } else {
-      // New marker
+      // New marker with heading-rotated icon
       const marker = L.marker(latLng, {
-        icon: this.icons['DEFAULT'],
+        icon: this.getIconForAsset(position.assetId, position.heading),
         title: position.assetId
       });
 
@@ -176,7 +215,7 @@ export class TrackingMapComponent implements OnInit, OnDestroy {
       existing.addLatLng(latLng);
     } else {
       const line = L.polyline([latLng], {
-        color: '#3388ff',
+        color: this.getTrailColor(position.assetId),
         weight: 2,
         opacity: 0.6
       }).addTo(this.map);
