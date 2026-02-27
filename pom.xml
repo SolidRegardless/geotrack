@@ -16,6 +16,7 @@
         <module>geotrack-common</module>
         <module>geotrack-api</module>
         <module>geotrack-processing</module>
+        <module>geotrack-simulator</module>
     </modules>
 
     <properties>
