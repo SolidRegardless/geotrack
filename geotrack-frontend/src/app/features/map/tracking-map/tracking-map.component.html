@@ -1,0 +1,12 @@
+<div class="map-container">
+  <!-- Status bar -->
+  <div class="status-bar">
+    <span class="status-indicator" [class.connected]="connectionStatus">
+      {{ connectionStatus ? '● Live' : '○ Disconnected' }}
+    </span>
+    <span class="asset-count">{{ assetCount }} assets tracked</span>
+  </div>
+
+  <!-- Map -->
+  <div id="tracking-map" class="map"></div>
+</div>

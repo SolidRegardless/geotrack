@@ -1,0 +1,20 @@
+/* Global styles for GeoTrack */
+@import 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body {
+  height: 100%;
+  font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
+  background: #0f0f1a;
+  color: #e0e0e0;
+}
+
+a {
+  color: #4695EB;
+  text-decoration: none;
+}
