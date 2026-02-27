@@ -16,7 +16,7 @@ import java.util.UUID;
 public class AssetEntity extends PanacheEntityBase {
 
     @Id
-    @GeneratedValue
+    @GeneratedValue(strategy = GenerationType.UUID)
     public UUID id;
 
     @Column(nullable = false)
@@ -31,6 +31,7 @@ public class AssetEntity extends PanacheEntityBase {
     public AssetStatus status = AssetStatus.ACTIVE;
 
     @Column(columnDefinition = "jsonb")
+    @org.hibernate.annotations.JdbcTypeCode(org.hibernate.type.SqlTypes.JSON)
     public String metadata;
 
     @Column(name = "created_at", nullable = false)

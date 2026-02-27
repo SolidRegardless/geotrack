@@ -26,7 +26,7 @@ public class PositionEntity extends PanacheEntityBase {
             new GeometryFactory(new PrecisionModel(), 4326);
 
     @Id
-    @GeneratedValue
+    @GeneratedValue(strategy = GenerationType.UUID)
     public UUID id;
 
     @Column(name = "asset_id", nullable = false)
@@ -54,6 +54,7 @@ public class PositionEntity extends PanacheEntityBase {
     public Instant receivedAt = Instant.now();
 
     @Column(columnDefinition = "jsonb")
+    @org.hibernate.annotations.JdbcTypeCode(org.hibernate.type.SqlTypes.JSON)
     public String metadata;
 
     /**

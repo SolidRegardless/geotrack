@@ -16,7 +16,7 @@ import java.util.UUID;
 public class AlertEntity extends PanacheEntityBase {
 
     @Id
-    @GeneratedValue
+    @GeneratedValue(strategy = GenerationType.UUID)
     public UUID id;
 
     @Column(name = "asset_id", nullable = false)

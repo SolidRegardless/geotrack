@@ -16,7 +16,7 @@ import java.util.UUID;
 public class GeofenceEntity extends PanacheEntityBase {
 
     @Id
-    @GeneratedValue
+    @GeneratedValue(strategy = GenerationType.UUID)
     public UUID id;
 
     @Column(nullable = false)
@@ -43,6 +43,7 @@ public class GeofenceEntity extends PanacheEntityBase {
     public boolean alertOnExit = true;
 
     @Column(columnDefinition = "jsonb")
+    @org.hibernate.annotations.JdbcTypeCode(org.hibernate.type.SqlTypes.JSON)
     public String metadata;
 
     @Column(name = "created_at")
