@@ -11,7 +11,7 @@ import org.mapstruct.factory.Mappers;
  * MapStruct mapper for Position entity → DTO.
  * Handles JTS Point → lat/lon extraction via custom methods.
  */
-@Mapper(componentModel = "cdi")
+@Mapper(componentModel = "default")
 public interface PositionMapper {
 
     PositionMapper INSTANCE = Mappers.getMapper(PositionMapper.class);

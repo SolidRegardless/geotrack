@@ -12,7 +12,7 @@ import org.mapstruct.factory.Mappers;
  * MapStruct mapper for Asset entity ↔ DTO conversions.
  * Compile-time code generation — no reflection overhead.
  */
-@Mapper(componentModel = "cdi")
+@Mapper(componentModel = "default")
 public interface AssetMapper {
 
     AssetMapper INSTANCE = Mappers.getMapper(AssetMapper.class);

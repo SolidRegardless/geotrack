@@ -8,7 +8,7 @@ import org.mapstruct.factory.Mappers;
 /**
  * MapStruct mapper for Geofence entity → DTO.
  */
-@Mapper(componentModel = "cdi")
+@Mapper(componentModel = "default")
 public interface GeofenceMapper {
 
     GeofenceMapper INSTANCE = Mappers.getMapper(GeofenceMapper.class);

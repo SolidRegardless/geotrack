@@ -8,7 +8,7 @@ import org.mapstruct.factory.Mappers;
 /**
  * MapStruct mapper for Alert entity → DTO.
  */
-@Mapper(componentModel = "cdi")
+@Mapper(componentModel = "default")
 public interface AlertMapper {
 
     AlertMapper INSTANCE = Mappers.getMapper(AlertMapper.class);
