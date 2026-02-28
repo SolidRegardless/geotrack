@@ -32,6 +32,8 @@ spec:
               value: geotrack
             - name: POSTGRES_PASSWORD
               value: geotrack
+            - name: PGDATA
+              value: /var/lib/postgresql/data/pgdata
           resources:
             requests:
               cpu: 50m
@@ -71,7 +73,7 @@ spec:
     - port: 5432
       targetPort: 5432
 ---
-# Kafka (Redpanda in KRaft mode)
+# Kafka (Bitnami, non-root, KRaft mode)
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -94,15 +96,29 @@ spec:
     spec:
       containers:
         - name: kafka
-          image: redpandadata/redpanda:v24.1.1
+          image: quay.io/strimzi/kafka:0.40.0-kafka-3.7.0
           command:
-            - rpk
-            - redpanda
-            - start
-            - --mode=dev-container
-            - --smp=1
-            - --memory=256M
-            - --default-log-level=warn
+            - /bin/sh
+            - -c
+            - |
+              ln -sf /tmp /opt/kafka/logs 2>/dev/null || true &&
+              export KAFKA_LOG4J_OPTS="-Dlog4j.configuration=file:/opt/kafka/config/log4j.properties" &&
+              export KAFKA_HEAP_OPTS="-Xms128m -Xmx256m" &&
+              export KAFKA_JVM_PERFORMANCE_OPTS=" " &&
+              export KAFKA_GC_LOG_OPTS=" " &&
+              export LOG_DIR=/tmp/kafka-logs &&
+              mkdir -p /tmp/kafka-logs &&
+              export KAFKA_CLUSTER_ID=$(bin/kafka-storage.sh random-uuid) &&
+              bin/kafka-storage.sh format -t $KAFKA_CLUSTER_ID -c config/kraft/server.properties --ignore-formatted &&
+              exec bin/kafka-server-start.sh config/kraft/server.properties \
+                --override node.id=0 \
+                --override process.roles=broker,controller \
+                --override controller.quorum.voters=0@localhost:9093 \
+                --override listeners=PLAINTEXT://:9092,CONTROLLER://:9093 \
+                --override advertised.listeners=PLAINTEXT://geotrack-kafka:9092 \
+                --override listener.security.protocol.map=CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT \
+                --override controller.listener.names=CONTROLLER \
+                --override log.dirs=/tmp/kraft-combined-logs
           ports:
             - containerPort: 9092
           resources:
@@ -369,7 +385,7 @@ spec:
       RUN mvn dependency:go-offline -pl geotrack-common,geotrack-simulator -am -q || true
       COPY geotrack-common/src geotrack-common/src
       COPY geotrack-simulator/src geotrack-simulator/src
-      RUN mvn package -pl geotrack-common,geotrack-simulator -am -DskipTests -q
+      RUN mvn package -pl geotrack-common,geotrack-simulator -am -DskipTests -Dmaven.test.skip=true -q
       FROM registry.access.redhat.com/ubi8/openjdk-21-runtime:latest
       COPY --from=build /build/geotrack-simulator/target/quarkus-app /deployments/
       EXPOSE 8080
@@ -417,6 +433,7 @@ spec:
       containers:
         - name: simulator
           image: image-registry.openshift-image-registry.svc:5000/stuarthart-dev/geotrack-simulator:latest
+          command: ["java", "-jar", "/deployments/quarkus-run.jar"]
           args: ["live", "--interval", "30"]
           env:
             - name: KAFKA_BOOTSTRAP
@@ -452,6 +469,7 @@ spec:
       containers:
         - name: simulator
           image: image-registry.openshift-image-registry.svc:5000/stuarthart-dev/geotrack-simulator:latest
+          command: ["java", "-jar", "/deployments/quarkus-run.jar"]
           args: ["ships", "--api-key", "$(AISSTREAM_API_KEY)"]
           env:
             - name: KAFKA_BOOTSTRAP
