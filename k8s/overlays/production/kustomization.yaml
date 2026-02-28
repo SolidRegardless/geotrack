@@ -34,6 +34,13 @@ patches:
         path: /spec/replicas
         value: 3
   - target:
+      kind: Deployment
+      name: geotrack-frontend
+    patch: |
+      - op: replace
+        path: /spec/replicas
+        value: 2
+  - target:
       kind: HorizontalPodAutoscaler
       name: geotrack-api
     patch: |

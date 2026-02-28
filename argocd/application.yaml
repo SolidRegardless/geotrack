@@ -10,9 +10,9 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: https://github.com/geotrack/geotrack.git
+    repoURL: https://github.com/YOUR_ORG/geotrack.git
     targetRevision: main
-    path: k8s/overlays/production
+    path: k8s/overlays/dev
   destination:
     server: https://kubernetes.default.svc
     namespace: geotrack

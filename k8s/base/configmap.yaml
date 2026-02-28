@@ -6,8 +6,11 @@ metadata:
   labels:
     app.kubernetes.io/part-of: geotrack
 data:
-  KAFKA_BOOTSTRAP_SERVERS: "geotrack-kafka-0.geotrack-kafka.geotrack.svc.cluster.local:9092"
-  QUARKUS_DATASOURCE_JDBC_URL: "jdbc:postgresql://geotrack-postgres.geotrack.svc.cluster.local:5432/geotrack"
+  QUARKUS_DATASOURCE_JDBC_URL: "jdbc:postgresql://geotrack-postgres:5432/geotrack"
+  QUARKUS_DATASOURCE_USERNAME: "geotrack"
   QUARKUS_DATASOURCE_DB_KIND: "postgresql"
+  KAFKA_BOOTSTRAP_SERVERS: "geotrack-kafka:9092"
+  OPENSKY_ENABLED: "true"
+  AISSTREAM_ENABLED: "true"
   QUARKUS_HTTP_PORT: "8080"
   JAVA_OPTS: "-XX:+UseG1GC -XX:MaxRAMPercentage=75.0"

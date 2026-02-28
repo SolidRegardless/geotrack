@@ -2,6 +2,7 @@ package com.geotrack.api.service;
 
 import com.geotrack.api.dto.AssetResponse;
 import com.geotrack.api.dto.CreateAssetRequest;
+import com.geotrack.api.mapper.AssetMapper;
 import com.geotrack.api.model.AssetEntity;
 import com.geotrack.api.repository.AssetRepository;
 import com.geotrack.common.model.AssetStatus;
@@ -20,16 +21,18 @@ import java.util.UUID;
 public class AssetService {
 
     private final AssetRepository assetRepository;
+    private final AssetMapper assetMapper;
 
     @Inject
-    public AssetService(AssetRepository assetRepository) {
+    public AssetService(AssetRepository assetRepository, AssetMapper assetMapper) {
         this.assetRepository = assetRepository;
+        this.assetMapper = assetMapper;
     }
 
     public List<AssetResponse> findAll(AssetType type, AssetStatus status, int page, int size, String sort) {
         return assetRepository.findFiltered(type, status, page, size, sort)
                 .stream()
-                .map(this::toResponse)
+                .map(assetMapper::toResponse)
                 .toList();
     }
 
@@ -39,20 +42,16 @@ public class AssetService {
 
     public AssetResponse findById(UUID id) {
         return assetRepository.findByIdOptional(id)
-                .map(this::toResponse)
+                .map(assetMapper::toResponse)
                 .orElseThrow(() -> new AssetNotFoundException(id));
     }
 
     @Transactional
     public AssetResponse create(CreateAssetRequest request) {
-        AssetEntity entity = new AssetEntity();
-        entity.name = request.name();
-        entity.assetType = request.type();
-        entity.status = AssetStatus.ACTIVE;
-        entity.metadata = request.metadata();
+        AssetEntity entity = assetMapper.toEntity(request);
 
         assetRepository.persist(entity);
-        return toResponse(entity);
+        return assetMapper.toResponse(entity);
     }
 
     @Transactional
@@ -61,17 +60,6 @@ public class AssetService {
                 .orElseThrow(() -> new AssetNotFoundException(id));
         entity.status = AssetStatus.DECOMMISSIONED;
         assetRepository.persist(entity);
-    }
-
-    private AssetResponse toResponse(AssetEntity entity) {
-        return new AssetResponse(
-                entity.id,
-                entity.name,
-                entity.assetType,
-                entity.status,
-                entity.createdAt,
-                entity.updatedAt
-        );
     }
 
     /**

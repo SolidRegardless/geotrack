@@ -2,6 +2,7 @@ package com.geotrack.api.service;
 
 import com.geotrack.api.dto.PositionResponse;
 import com.geotrack.api.dto.SubmitPositionRequest;
+import com.geotrack.api.mapper.PositionMapper;
 import com.geotrack.api.model.PositionEntity;
 import com.geotrack.api.repository.PositionRepository;
 import com.geotrack.common.validation.CoordinateValidator;
@@ -22,11 +23,13 @@ import java.util.UUID;
 public class PositionService {
 
     private final PositionRepository positionRepository;
+    private final PositionMapper positionMapper;
     private final Counter positionsProcessed;
 
     @Inject
-    public PositionService(PositionRepository positionRepository, MeterRegistry meterRegistry) {
+    public PositionService(PositionRepository positionRepository, PositionMapper positionMapper, MeterRegistry meterRegistry) {
         this.positionRepository = positionRepository;
+        this.positionMapper = positionMapper;
         this.positionsProcessed = Counter.builder("geotrack.positions.processed")
                 .description("Total positions processed")
                 .register(meterRegistry);
@@ -55,13 +58,13 @@ public class PositionService {
         positionRepository.persist(entity);
         positionsProcessed.increment();
 
-        return toResponse(entity);
+        return positionMapper.toResponse(entity);
     }
 
     public List<PositionResponse> getLatestPositions() {
         return positionRepository.findLatestPositions()
                 .stream()
-                .map(this::toResponse)
+                .map(positionMapper::toResponse)
                 .toList();
     }
 
@@ -71,24 +74,7 @@ public class PositionService {
 
         return positionRepository.findByAssetAndTimeRange(assetId, from, to, limit)
                 .stream()
-                .map(this::toResponse)
+                .map(positionMapper::toResponse)
                 .toList();
-    }
-
-    private PositionResponse toResponse(PositionEntity entity) {
-        // Use original string ID (stored in source) if available, else UUID
-        String displayAssetId = entity.source != null && !entity.source.isBlank()
-                ? entity.source : entity.assetId.toString();
-        return new PositionResponse(
-                entity.id,
-                displayAssetId,
-                entity.getLatitude(),
-                entity.getLongitude(),
-                entity.altitude != null ? entity.altitude : 0,
-                entity.speed != null ? entity.speed : 0,
-                entity.heading != null ? entity.heading : 0,
-                entity.timestamp,
-                entity.source
-        );
     }
 }

@@ -38,7 +38,7 @@ spec:
             - configMapRef:
                 name: geotrack-config
             - secretRef:
-                name: geotrack-db-credentials
+                name: geotrack-secrets
           livenessProbe:
             httpGet:
               path: /q/health/live

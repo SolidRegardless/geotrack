@@ -1,6 +1,7 @@
 package com.geotrack.api.service;
 
 import com.geotrack.api.dto.AlertResponse;
+import com.geotrack.api.mapper.AlertMapper;
 import com.geotrack.api.model.AlertEntity;
 import com.geotrack.api.repository.AlertRepository;
 import com.geotrack.common.model.Severity;
@@ -30,9 +31,11 @@ class AlertServiceTest {
 
     AlertService alertService;
 
+    private final AlertMapper alertMapper = AlertMapper.INSTANCE;
+
     @BeforeEach
     void setUp() {
-        alertService = new AlertService(alertRepository);
+        alertService = new AlertService(alertRepository, alertMapper);
     }
 
     private AlertEntity makeAlert(UUID assetId, String type, Severity severity, boolean acked) {

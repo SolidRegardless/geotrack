@@ -22,8 +22,6 @@ spec:
       automountServiceAccountToken: false
       securityContext:
         runAsNonRoot: true
-        runAsUser: 1000
-        runAsGroup: 1000
         seccompProfile:
           type: RuntimeDefault
       containers:
@@ -34,21 +32,11 @@ spec:
             - name: http
               containerPort: {{ .Values.api.port }}
               protocol: TCP
-          env:
-            - name: KAFKA_BOOTSTRAP_SERVERS
-              value: {{ .Values.config.kafkaBootstrapServers | quote }}
-            - name: QUARKUS_DATASOURCE_JDBC_URL
-              value: {{ .Values.config.datasourceUrl | quote }}
-            - name: QUARKUS_DATASOURCE_USERNAME
-              valueFrom:
-                secretKeyRef:
-                  name: {{ include "geotrack.fullname" . }}-db-credentials
-                  key: username
-            - name: QUARKUS_DATASOURCE_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: {{ include "geotrack.fullname" . }}-db-credentials
-                  key: password
+          envFrom:
+            - configMapRef:
+                name: {{ include "geotrack.fullname" . }}-config
+            - secretRef:
+                name: {{ include "geotrack.fullname" . }}-secrets
           livenessProbe:
             httpGet:
               path: {{ .Values.api.healthCheck.liveness }}
@@ -65,7 +53,6 @@ spec:
             {{- toYaml .Values.api.resources | nindent 12 }}
           securityContext:
             allowPrivilegeEscalation: false
-            readOnlyRootFilesystem: true
             capabilities:
               drop:
                 - ALL

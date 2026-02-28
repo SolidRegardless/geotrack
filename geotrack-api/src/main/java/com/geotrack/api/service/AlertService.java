@@ -1,6 +1,7 @@
 package com.geotrack.api.service;
 
 import com.geotrack.api.dto.AlertResponse;
+import com.geotrack.api.mapper.AlertMapper;
 import com.geotrack.api.model.AlertEntity;
 import com.geotrack.api.repository.AlertRepository;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -15,27 +16,29 @@ import java.util.UUID;
 public class AlertService {
 
     private final AlertRepository alertRepository;
+    private final AlertMapper alertMapper;
 
     @Inject
-    public AlertService(AlertRepository alertRepository) {
+    public AlertService(AlertRepository alertRepository, AlertMapper alertMapper) {
         this.alertRepository = alertRepository;
+        this.alertMapper = alertMapper;
     }
 
     public List<AlertResponse> findAll() {
         return alertRepository.findRecent(100).stream()
-                .map(this::toResponse)
+                .map(alertMapper::toResponse)
                 .toList();
     }
 
     public List<AlertResponse> findUnacknowledged() {
         return alertRepository.findUnacknowledged().stream()
-                .map(this::toResponse)
+                .map(alertMapper::toResponse)
                 .toList();
     }
 
     public List<AlertResponse> findByAssetId(UUID assetId) {
         return alertRepository.findByAssetId(assetId).stream()
-                .map(this::toResponse)
+                .map(alertMapper::toResponse)
                 .toList();
     }
 
@@ -47,14 +50,5 @@ public class AlertService {
         entity.acknowledgedBy = username;
         entity.acknowledgedAt = Instant.now();
         alertRepository.persist(entity);
-    }
-
-    private AlertResponse toResponse(AlertEntity entity) {
-        return new AlertResponse(
-                entity.id, entity.assetId, entity.geofenceId,
-                entity.alertType, entity.severity, entity.message,
-                entity.acknowledged, entity.acknowledgedBy,
-                entity.acknowledgedAt, entity.createdAt
-        );
     }
 }

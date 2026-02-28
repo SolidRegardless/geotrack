@@ -50,6 +50,12 @@
             <artifactId>quarkus-jackson</artifactId>
         </dependency>
 
+        <!-- Vertx core (needed by Quarkus Jackson serializer registration) -->
+        <dependency>
+            <groupId>io.quarkus</groupId>
+            <artifactId>quarkus-vertx</artifactId>
+        </dependency>
+
         <!-- Test -->
         <dependency>
             <groupId>io.quarkus</groupId>

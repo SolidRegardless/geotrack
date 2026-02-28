@@ -2,6 +2,7 @@ package com.geotrack.api.service;
 
 import com.geotrack.api.dto.CreateGeofenceRequest;
 import com.geotrack.api.dto.GeofenceResponse;
+import com.geotrack.api.mapper.GeofenceMapper;
 import com.geotrack.api.model.GeofenceEntity;
 import com.geotrack.api.repository.GeofenceRepository;
 import com.geotrack.common.model.FenceType;
@@ -39,9 +40,11 @@ class GeofenceServiceTest {
 
     private static final GeometryFactory GF = new GeometryFactory(new PrecisionModel(), 4326);
 
+    private final GeofenceMapper geofenceMapper = GeofenceMapper.INSTANCE;
+
     @BeforeEach
     void setUp() {
-        geofenceService = new GeofenceService(geofenceRepository);
+        geofenceService = new GeofenceService(geofenceRepository, geofenceMapper);
     }
 
     private GeofenceEntity makeEntity(String name, FenceType type, boolean active) {

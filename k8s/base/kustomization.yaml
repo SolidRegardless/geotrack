@@ -16,6 +16,10 @@ resources:
   - api-service/hpa.yaml
   - processing-service/deployment.yaml
   - processing-service/service.yaml
+  - frontend/deployment.yaml
+  - frontend/service.yaml
+  - simulator/deployment-live.yaml
+  - simulator/deployment-ships.yaml
   - postgres/statefulset.yaml
   - postgres/service.yaml
   - kafka/statefulset.yaml

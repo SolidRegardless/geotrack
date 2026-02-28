@@ -2,6 +2,7 @@ package com.geotrack.api.service;
 
 import com.geotrack.api.dto.CreateGeofenceRequest;
 import com.geotrack.api.dto.GeofenceResponse;
+import com.geotrack.api.mapper.GeofenceMapper;
 import com.geotrack.api.model.GeofenceEntity;
 import com.geotrack.api.repository.GeofenceRepository;
 import com.geotrack.common.spatial.SpatialEngine;
@@ -16,29 +17,31 @@ import java.util.UUID;
 public class GeofenceService {
 
     private final GeofenceRepository geofenceRepository;
+    private final GeofenceMapper geofenceMapper;
     private final SpatialEngine spatialEngine;
 
     @Inject
-    public GeofenceService(GeofenceRepository geofenceRepository) {
+    public GeofenceService(GeofenceRepository geofenceRepository, GeofenceMapper geofenceMapper) {
         this.geofenceRepository = geofenceRepository;
+        this.geofenceMapper = geofenceMapper;
         this.spatialEngine = new SpatialEngine();
     }
 
     public List<GeofenceResponse> findAll() {
         return geofenceRepository.findAllGeofences().stream()
-                .map(this::toResponse)
+                .map(geofenceMapper::toResponse)
                 .toList();
     }
 
     public List<GeofenceResponse> findActive() {
         return geofenceRepository.findActive().stream()
-                .map(this::toResponse)
+                .map(geofenceMapper::toResponse)
                 .toList();
     }
 
     public GeofenceResponse findById(UUID id) {
         return geofenceRepository.findByIdOptional(id)
-                .map(this::toResponse)
+                .map(geofenceMapper::toResponse)
                 .orElseThrow(() -> new RuntimeException("Geofence not found: " + id));
     }
 
@@ -53,7 +56,7 @@ public class GeofenceService {
         entity.alertOnExit = request.alertOnExit();
 
         geofenceRepository.persist(entity);
-        return toResponse(entity);
+        return geofenceMapper.toResponse(entity);
     }
 
     @Transactional
@@ -62,14 +65,5 @@ public class GeofenceService {
                 .orElseThrow(() -> new RuntimeException("Geofence not found: " + id));
         entity.active = false;
         geofenceRepository.persist(entity);
-    }
-
-    private GeofenceResponse toResponse(GeofenceEntity entity) {
-        return new GeofenceResponse(
-                entity.id, entity.name, entity.description,
-                entity.fenceType, entity.active,
-                entity.alertOnEnter, entity.alertOnExit,
-                entity.createdAt
-        );
     }
 }

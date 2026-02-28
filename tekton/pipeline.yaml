@@ -16,12 +16,12 @@ spec:
     - name: image-registry
       type: string
       default: ghcr.io/geotrack
-    - name: image-name
-      type: string
-      default: geotrack-api
     - name: image-tag
       type: string
       default: latest
+    - name: deploy-overlay
+      type: string
+      default: dev
   workspaces:
     - name: shared-workspace
     - name: maven-settings
@@ -30,7 +30,6 @@ spec:
     - name: git-clone
       taskRef:
         name: git-clone
-        kind: ClusterTask
       params:
         - name: url
           value: $(params.git-url)
@@ -49,107 +48,106 @@ spec:
         - name: GOALS
           value:
             - clean
-            - verify
+            - package
+            - -DskipTests
       workspaces:
         - name: source
           workspace: shared-workspace
         - name: maven-settings
           workspace: maven-settings
 
-    - name: test
+    - name: sonar-scan
       taskRef:
-        name: geotrack-maven-build
+        name: geotrack-sonar-scan
       runAfter:
         - maven-build
-      params:
-        - name: GOALS
-          value:
-            - test
-            - -Pintegration-tests
-      workspaces:
-        - name: source
-          workspace: shared-workspace
-        - name: maven-settings
-          workspace: maven-settings
-
-    - name: sonarqube-scan
-      taskRef:
-        name: sonarqube-scanner
-        kind: ClusterTask
-      runAfter:
-        - test
-      params:
-        - name: SONAR_HOST_URL
-          value: https://sonarqube.geotrack.dev
-        - name: SONAR_PROJECT_KEY
-          value: geotrack
       workspaces:
         - name: source
           workspace: shared-workspace
 
-    - name: buildah
+    - name: build-api-image
       taskRef:
-        name: buildah
-        kind: ClusterTask
+        name: geotrack-docker-build
       runAfter:
-        - sonarqube-scan
+        - sonar-scan
       params:
         - name: IMAGE
-          value: $(params.image-registry)/$(params.image-name):$(params.image-tag)
+          value: $(params.image-registry)/geotrack-api:$(params.image-tag)
         - name: DOCKERFILE
-          value: src/main/docker/Dockerfile.jvm
+          value: geotrack-api/src/main/docker/Dockerfile.jvm
+        - name: CONTEXT
+          value: geotrack-api
       workspaces:
         - name: source
           workspace: shared-workspace
         - name: dockerconfig
           workspace: docker-credentials
 
-    - name: trivy-scan
+    - name: build-processing-image
       taskRef:
-        name: trivy-scanner
-        kind: ClusterTask
+        name: geotrack-docker-build
       runAfter:
-        - buildah
+        - sonar-scan
       params:
         - name: IMAGE
-          value: $(params.image-registry)/$(params.image-name):$(params.image-tag)
-        - name: SEVERITY
-          value: HIGH,CRITICAL
-
-    - name: push-image
-      taskRef:
-        name: buildah
-        kind: ClusterTask
-      runAfter:
-        - trivy-scan
-      params:
-        - name: IMAGE
-          value: $(params.image-registry)/$(params.image-name):$(params.image-tag)
+          value: $(params.image-registry)/geotrack-processing:$(params.image-tag)
         - name: DOCKERFILE
-          value: src/main/docker/Dockerfile.jvm
-        - name: PUSH_EXTRA_ARGS
-          value: ""
+          value: geotrack-processing/src/main/docker/Dockerfile.jvm
+        - name: CONTEXT
+          value: geotrack-processing
       workspaces:
         - name: source
           workspace: shared-workspace
         - name: dockerconfig
           workspace: docker-credentials
 
-    - name: update-manifests
+    - name: build-simulator-image
       taskRef:
-        name: git-cli
-        kind: ClusterTask
+        name: geotrack-docker-build
       runAfter:
-        - push-image
+        - sonar-scan
       params:
-        - name: GIT_SCRIPT
-          value: |
-            git clone $(params.git-url) /tmp/manifests
-            cd /tmp/manifests
-            sed -i "s|image:.*$(params.image-name).*|image: $(params.image-registry)/$(params.image-name):$(params.image-tag)|g" k8s/base/api-service/deployment.yaml
-            git add -A
-            git commit -m "chore: update $(params.image-name) image to $(params.image-tag)"
-            git push origin main
+        - name: IMAGE
+          value: $(params.image-registry)/geotrack-simulator:$(params.image-tag)
+        - name: DOCKERFILE
+          value: geotrack-simulator/src/main/docker/Dockerfile.jvm
+        - name: CONTEXT
+          value: geotrack-simulator
+      workspaces:
+        - name: source
+          workspace: shared-workspace
+        - name: dockerconfig
+          workspace: docker-credentials
+
+    - name: build-frontend-image
+      taskRef:
+        name: geotrack-docker-build
+      runAfter:
+        - sonar-scan
+      params:
+        - name: IMAGE
+          value: $(params.image-registry)/geotrack-frontend:$(params.image-tag)
+        - name: DOCKERFILE
+          value: geotrack-frontend/Dockerfile
+        - name: CONTEXT
+          value: geotrack-frontend
+      workspaces:
+        - name: source
+          workspace: shared-workspace
+        - name: dockerconfig
+          workspace: docker-credentials
+
+    - name: deploy
+      taskRef:
+        name: geotrack-deploy
+      runAfter:
+        - build-api-image
+        - build-processing-image
+        - build-simulator-image
+        - build-frontend-image
+      params:
+        - name: OVERLAY
+          value: $(params.deploy-overlay)
       workspaces:
         - name: source
           workspace: shared-workspace

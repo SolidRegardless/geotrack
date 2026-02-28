@@ -2,6 +2,7 @@ package com.geotrack.api.service;
 
 import com.geotrack.api.dto.AssetResponse;
 import com.geotrack.api.dto.CreateAssetRequest;
+import com.geotrack.api.mapper.AssetMapper;
 import com.geotrack.api.model.AssetEntity;
 import com.geotrack.api.repository.AssetRepository;
 import com.geotrack.common.model.AssetStatus;
@@ -11,7 +12,6 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -27,6 +27,7 @@ import static org.mockito.Mockito.*;
 /**
  * Unit tests for AssetService.
  * Uses Mockito to isolate business logic from persistence.
+ * MapStruct mapper is used directly (compile-time generated, no mocking needed).
  */
 @ExtendWith(MockitoExtension.class)
 class AssetServiceTest {
@@ -34,13 +35,15 @@ class AssetServiceTest {
     @Mock
     AssetRepository assetRepository;
 
-    @InjectMocks
+    private final AssetMapper assetMapper = AssetMapper.INSTANCE;
+
     AssetService assetService;
 
     private AssetEntity sampleAsset;
 
     @BeforeEach
     void setUp() {
+        assetService = new AssetService(assetRepository, assetMapper);
         sampleAsset = new AssetEntity();
         sampleAsset.id = UUID.randomUUID();
         sampleAsset.name = "Test Vehicle Alpha";

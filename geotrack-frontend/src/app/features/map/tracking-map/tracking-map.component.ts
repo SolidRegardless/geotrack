@@ -61,11 +61,12 @@ export class TrackingMapComponent implements OnInit, OnDestroy {
   /** Resolve asset type key from assetId naming convention */
   private getAssetTypeKey(assetId: string): string | null {
     const id = assetId.toUpperCase();
+    if (id.startsWith('SHIP-')) return 'BOAT';
     if (id.includes('BUS')) return 'BUS';
     if (id.includes('TRAIN')) return 'TRAIN';
     if (id.includes('PLANE')) return 'PLANE';
     if (id.includes('BOAT')) return 'BOAT';
-    return null;
+    return 'PLANE'; // Default to plane icon for live aircraft data
   }
 
   /** Get the appropriate icon (rotated DivIcon or default) */

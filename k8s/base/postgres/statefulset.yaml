@@ -32,7 +32,7 @@ spec:
               protocol: TCP
           envFrom:
             - secretRef:
-                name: geotrack-db-credentials
+                name: geotrack-secrets
           livenessProbe:
             exec:
               command:
