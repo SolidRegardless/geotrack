@@ -24,9 +24,16 @@ export class TrackingMapComponent implements OnInit, OnDestroy {
 
   private map!: L.Map;
   private markers = new Map<string, L.Marker>();
-  private routeLines = new Map<string, L.Polyline>();
+  private trailSegments = new Map<string, L.Polyline[]>();
+  private trailPoints = new Map<string, { lat: number; lng: number; time: number }[]>();
   private geofenceLayers = new Map<string, L.Polygon>();
   private destroy$ = new Subject<void>();
+  private trailFadeInterval: ReturnType<typeof setInterval> | null = null;
+
+  /** Max trail points per asset before oldest are pruned */
+  private readonly MAX_TRAIL_POINTS = 200;
+  /** Trail fully fades after this many ms */
+  private readonly TRAIL_MAX_AGE_MS = 30 * 60 * 1000; // 30 minutes
 
   connectionStatus = false;
   assetCount = 0;
@@ -99,6 +106,7 @@ export class TrackingMapComponent implements OnInit, OnDestroy {
     this.loadInitialPositions();
     this.subscribeToUpdates();
     this.subscribeToAlerts();
+    this.startTrailFadeTimer();
 
     this.wsService.connected$
       .pipe(takeUntil(this.destroy$))
@@ -225,19 +233,84 @@ export class TrackingMapComponent implements OnInit, OnDestroy {
   }
 
   private appendToRoute(position: AssetPosition): void {
-    const latLng: L.LatLngTuple = [position.latitude, position.longitude];
-    const existing = this.routeLines.get(position.assetId);
+    const point = {
+      lat: position.latitude,
+      lng: position.longitude,
+      time: new Date(position.timestamp).getTime() || Date.now()
+    };
 
-    if (existing) {
-      existing.addLatLng(latLng);
-    } else {
-      const line = L.polyline([latLng], {
-        color: this.getTrailColor(position.assetId),
-        weight: 3,
-        opacity: 0.8
-      }).addTo(this.map);
-      this.routeLines.set(position.assetId, line);
+    // Append to the point history for this asset
+    let points = this.trailPoints.get(position.assetId);
+    if (!points) {
+      points = [];
+      this.trailPoints.set(position.assetId, points);
     }
+    points.push(point);
+
+    // Prune oldest points if over limit
+    while (points.length > this.MAX_TRAIL_POINTS) {
+      points.shift();
+    }
+
+    // Rebuild the faded trail segments for this asset
+    this.rebuildTrail(position.assetId);
+  }
+
+  /**
+   * Rebuild all trail segments for an asset with opacity fading.
+   * Each segment between two consecutive points gets an opacity
+   * proportional to its age — newest segments are fully opaque,
+   * oldest segments are nearly transparent.
+   */
+  private rebuildTrail(assetId: string): void {
+    // Remove existing segments from the map
+    const existing = this.trailSegments.get(assetId) || [];
+    existing.forEach(seg => seg.remove());
+
+    const points = this.trailPoints.get(assetId);
+    if (!points || points.length < 2) {
+      this.trailSegments.set(assetId, []);
+      return;
+    }
+
+    const color = this.getTrailColor(assetId);
+    const now = Date.now();
+    const segments: L.Polyline[] = [];
+
+    for (let i = 0; i < points.length - 1; i++) {
+      const segmentTime = points[i + 1].time;
+      const age = now - segmentTime;
+
+      // Opacity: 1.0 for brand new, fading to 0.05 at max age
+      const ageFraction = Math.min(age / this.TRAIL_MAX_AGE_MS, 1);
+      const opacity = Math.max(0.05, 1.0 - ageFraction * 0.95);
+
+      // Slightly thinner for older segments
+      const weight = Math.max(1, 3 - ageFraction * 2);
+
+      const seg = L.polyline(
+        [[points[i].lat, points[i].lng], [points[i + 1].lat, points[i + 1].lng]],
+        { color, weight, opacity, interactive: false }
+      ).addTo(this.map);
+
+      segments.push(seg);
+    }
+
+    this.trailSegments.set(assetId, segments);
+  }
+
+  /** Periodically refresh trail opacities so they continue fading over time */
+  private startTrailFadeTimer(): void {
+    this.trailFadeInterval = setInterval(() => {
+      const now = Date.now();
+      for (const [assetId, points] of this.trailPoints) {
+        // Prune points older than max age
+        while (points.length > 0 && (now - points[0].time) > this.TRAIL_MAX_AGE_MS) {
+          points.shift();
+        }
+        this.rebuildTrail(assetId);
+      }
+    }, 15000); // Refresh fading every 15 seconds
   }
 
   private createPopupHtml(position: AssetPosition): string {
@@ -268,6 +341,9 @@ export class TrackingMapComponent implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
+    if (this.trailFadeInterval) {
+      clearInterval(this.trailFadeInterval);
+    }
     if (this.map) {
       this.map.remove();
     }
