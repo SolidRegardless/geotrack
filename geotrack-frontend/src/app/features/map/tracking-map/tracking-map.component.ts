@@ -116,9 +116,27 @@ export class TrackingMapComponent implements OnInit, OnDestroy {
       });
   }
 
+  private readonly MAP_STATE_KEY = 'geotrack-map-state';
+
+  private loadMapState(): { lat: number; lng: number; zoom: number } | null {
+    try {
+      const raw = localStorage.getItem(this.MAP_STATE_KEY);
+      if (raw) return JSON.parse(raw);
+    } catch {}
+    return null;
+  }
+
+  private saveMapState(): void {
+    const center = this.map.getCenter();
+    const state = { lat: center.lat, lng: center.lng, zoom: this.map.getZoom() };
+    localStorage.setItem(this.MAP_STATE_KEY, JSON.stringify(state));
+  }
+
   private initMap(): void {
-    // Centre on Newcastle
-    this.map = L.map('tracking-map').setView([54.9783, -1.6178], 13);
+    const saved = this.loadMapState();
+    const center: L.LatLngExpression = saved ? [saved.lat, saved.lng] : [54.9783, -1.6178];
+    const zoom = saved ? saved.zoom : 13;
+    this.map = L.map('tracking-map').setView(center, zoom);
 
     // Base tile layers
     const osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -148,6 +166,9 @@ export class TrackingMapComponent implements OnInit, OnDestroy {
 
     // Scale bar
     L.control.scale({ imperial: false }).addTo(this.map);
+
+    // Persist map position on move/zoom
+    this.map.on('moveend', () => this.saveMapState());
   }
 
   private loadInitialPositions(): void {
@@ -157,8 +178,8 @@ export class TrackingMapComponent implements OnInit, OnDestroy {
         this.assetCount = positions.length;
         this.cdr.markForCheck();
 
-        // Fit map to show all assets
-        if (positions.length > 0) {
+        // Fit map to show all assets (only if no saved view)
+        if (positions.length > 0 && !this.loadMapState()) {
           const group = new L.FeatureGroup(Array.from(this.markers.values()));
           this.map.fitBounds(group.getBounds().pad(0.1));
         }
