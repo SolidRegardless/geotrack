@@ -1,0 +1,35 @@
+{{- if .Values.simulator.live.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "geotrack.fullname" . }}-simulator-live
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    app.kubernetes.io/name: {{ include "geotrack.fullname" . }}-simulator-live
+    app.kubernetes.io/component: simulator
+    {{- include "geotrack.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.simulator.live.replicaCount }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "geotrack.fullname" . }}-simulator-live
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: {{ include "geotrack.fullname" . }}-simulator-live
+        app.kubernetes.io/component: simulator
+    spec:
+      automountServiceAccountToken: false
+      containers:
+        - name: simulator-live
+          image: "{{ .Values.simulator.image.repository }}:{{ .Values.simulator.image.tag }}"
+          imagePullPolicy: {{ .Values.global.imagePullPolicy }}
+          args: ["live", "--interval", "{{ .Values.simulator.live.pollInterval | default 30 }}"]
+          envFrom:
+            - configMapRef:
+                name: {{ include "geotrack.fullname" . }}-config
+            - secretRef:
+                name: {{ include "geotrack.fullname" . }}-secrets
+          resources:
+            {{- toYaml .Values.simulator.resources | nindent 12 }}
+{{- end }}
