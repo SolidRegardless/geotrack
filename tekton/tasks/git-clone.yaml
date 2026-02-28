@@ -1,0 +1,24 @@
+apiVersion: tekton.dev/v1
+kind: Task
+metadata:
+  name: git-clone
+  namespace: geotrack
+  labels:
+    app.kubernetes.io/part-of: geotrack
+spec:
+  params:
+    - name: url
+      type: string
+      description: Git repository URL
+    - name: revision
+      type: string
+      default: main
+  workspaces:
+    - name: output
+      description: Cloned source output
+  steps:
+    - name: clone
+      image: alpine/git:latest
+      workingDir: $(workspaces.output.path)
+      script: |
+        git clone --branch $(params.revision) --depth 1 $(params.url) .

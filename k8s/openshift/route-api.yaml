@@ -1,0 +1,19 @@
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: geotrack-api
+  namespace: geotrack
+  labels:
+    app.kubernetes.io/name: geotrack-api
+    app.kubernetes.io/part-of: geotrack
+spec:
+  host: api.geotrack.apps.example.com
+  to:
+    kind: Service
+    name: geotrack-api
+    weight: 100
+  port:
+    targetPort: http
+  tls:
+    termination: edge
+    insecureEdgeTerminationPolicy: Redirect

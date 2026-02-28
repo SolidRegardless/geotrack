@@ -1,0 +1,43 @@
+apiVersion: tekton.dev/v1
+kind: Task
+metadata:
+  name: geotrack-docker-build
+  namespace: geotrack
+  labels:
+    app.kubernetes.io/part-of: geotrack
+spec:
+  params:
+    - name: IMAGE
+      type: string
+      description: Full image reference (registry/name:tag)
+    - name: DOCKERFILE
+      type: string
+      default: Dockerfile
+    - name: CONTEXT
+      type: string
+      default: "."
+  workspaces:
+    - name: source
+      description: Source code workspace
+    - name: dockerconfig
+      description: Docker credentials
+      optional: true
+  results:
+    - name: IMAGE_DIGEST
+      description: Digest of the built image
+  steps:
+    - name: build-and-push
+      image: gcr.io/kaniko-project/executor:latest
+      args:
+        - --dockerfile=$(params.DOCKERFILE)
+        - --context=$(workspaces.source.path)/$(params.CONTEXT)
+        - --destination=$(params.IMAGE)
+        - --digest-file=$(results.IMAGE_DIGEST.path)
+      volumeMounts:
+        - name: docker-config
+          mountPath: /kaniko/.docker
+  volumes:
+    - name: docker-config
+      secret:
+        secretName: docker-credentials
+        optional: true

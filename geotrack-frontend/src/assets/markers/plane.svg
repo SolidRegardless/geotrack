@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32">
+  <!-- Plane icon pointing NORTH (up) -->
+  <g transform="translate(16,16)" fill="#F44336" stroke="#B71C1C" stroke-width="0.5">
+    <path d="M0-14 L3-7 L13-1 L13 2 L3 0 L2 10 L5 12 L5 14 L0 12 L-5 14 L-5 12 L-2 10 L-3 0 L-13 2 L-13-1 L-3-7Z"/>
+  </g>
+</svg>

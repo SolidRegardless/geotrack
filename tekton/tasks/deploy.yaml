@@ -1,0 +1,33 @@
+apiVersion: tekton.dev/v1
+kind: Task
+metadata:
+  name: geotrack-deploy
+  namespace: geotrack
+  labels:
+    app.kubernetes.io/part-of: geotrack
+spec:
+  params:
+    - name: OVERLAY
+      type: string
+      default: dev
+      description: Kustomize overlay to apply (dev/production)
+    - name: NAMESPACE
+      type: string
+      default: geotrack
+  workspaces:
+    - name: source
+      description: Source code workspace
+  steps:
+    - name: deploy
+      image: bitnami/kubectl:latest
+      workingDir: $(workspaces.source.path)
+      script: |
+        #!/bin/sh
+        set -e
+        echo "Deploying overlay: $(params.OVERLAY)"
+        kubectl apply -k k8s/overlays/$(params.OVERLAY) -n $(params.NAMESPACE)
+        echo "Waiting for rollout..."
+        kubectl rollout status deployment/geotrack-api -n $(params.NAMESPACE) --timeout=300s
+        kubectl rollout status deployment/geotrack-processing -n $(params.NAMESPACE) --timeout=300s
+        kubectl rollout status deployment/geotrack-frontend -n $(params.NAMESPACE) --timeout=300s
+        echo "Deploy complete!"

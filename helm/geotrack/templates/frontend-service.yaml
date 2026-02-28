@@ -1,0 +1,20 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "geotrack.fullname" . }}-frontend
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    app.kubernetes.io/name: {{ include "geotrack.fullname" . }}-frontend
+    app.kubernetes.io/component: frontend
+    {{- include "geotrack.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.frontend.service.type | default "ClusterIP" }}
+  selector:
+    app.kubernetes.io/name: {{ include "geotrack.fullname" . }}-frontend
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
+      {{- if and (eq .Values.frontend.service.type "NodePort") .Values.frontend.service.nodePort }}
+      nodePort: {{ .Values.frontend.service.nodePort }}
+      {{- end }}

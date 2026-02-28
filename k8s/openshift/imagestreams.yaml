@@ -1,0 +1,43 @@
+apiVersion: image.openshift.io/v1
+kind: ImageStream
+metadata:
+  name: geotrack-api
+  namespace: geotrack
+  labels:
+    app.kubernetes.io/part-of: geotrack
+spec:
+  lookupPolicy:
+    local: true
+---
+apiVersion: image.openshift.io/v1
+kind: ImageStream
+metadata:
+  name: geotrack-processing
+  namespace: geotrack
+  labels:
+    app.kubernetes.io/part-of: geotrack
+spec:
+  lookupPolicy:
+    local: true
+---
+apiVersion: image.openshift.io/v1
+kind: ImageStream
+metadata:
+  name: geotrack-simulator
+  namespace: geotrack
+  labels:
+    app.kubernetes.io/part-of: geotrack
+spec:
+  lookupPolicy:
+    local: true
+---
+apiVersion: image.openshift.io/v1
+kind: ImageStream
+metadata:
+  name: geotrack-frontend
+  namespace: geotrack
+  labels:
+    app.kubernetes.io/part-of: geotrack
+spec:
+  lookupPolicy:
+    local: true

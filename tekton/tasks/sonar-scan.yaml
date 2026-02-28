@@ -1,0 +1,36 @@
+apiVersion: tekton.dev/v1
+kind: Task
+metadata:
+  name: geotrack-sonar-scan
+  namespace: geotrack
+  labels:
+    app.kubernetes.io/part-of: geotrack
+spec:
+  params:
+    - name: SONAR_HOST_URL
+      type: string
+      default: https://sonarqube.geotrack.dev
+    - name: SONAR_PROJECT_KEY
+      type: string
+      default: geotrack
+  workspaces:
+    - name: source
+      description: Source code workspace
+  steps:
+    - name: sonar-scan
+      image: maven:3.9-eclipse-temurin-21
+      workingDir: $(workspaces.source.path)
+      command:
+        - mvn
+      args:
+        - sonar:sonar
+        - -Dsonar.host.url=$(params.SONAR_HOST_URL)
+        - -Dsonar.projectKey=$(params.SONAR_PROJECT_KEY)
+        - -Dsonar.qualitygate.wait=true
+      env:
+        - name: SONAR_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: sonar-credentials
+              key: token
+              optional: true

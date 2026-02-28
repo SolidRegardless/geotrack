@@ -1,0 +1,106 @@
+## Local Docker Desktop K8s overrides
+
+global:
+  imagePullPolicy: Never  # Use local images
+
+api:
+  replicaCount: 1
+  image:
+    repository: geotrack-api
+    tag: latest
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+  hpa:
+    enabled: false
+
+processing:
+  replicaCount: 1
+  image:
+    repository: geotrack-processing
+    tag: latest
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+frontend:
+  replicaCount: 1
+  image:
+    repository: geotrack-frontend
+    tag: latest
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 200m
+      memory: 128Mi
+
+simulator:
+  live:
+    enabled: true
+    replicaCount: 1
+  ships:
+    enabled: true
+    replicaCount: 1
+  image:
+    repository: geotrack-simulator
+    tag: latest
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      cpu: 250m
+      memory: 256Mi
+
+postgres:
+  enabled: true
+  image:
+    repository: postgis/postgis
+    tag: "16-3.4"
+  storage: 5Gi
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 1Gi
+  credentials:
+    username: geotrack
+    password: geotrack
+    database: geotrack
+
+kafka:
+  enabled: true
+  image:
+    repository: redpandadata/redpanda
+    tag: v24.1.1
+  storage: 5Gi
+  resources:
+    requests:
+      cpu: 100m
+      memory: 512Mi
+    limits:
+      cpu: 500m
+      memory: 1Gi
+
+config:
+  kafkaBootstrapServers: "geotrack-kafka:9092"
+  datasourceUrl: "jdbc:postgresql://geotrack-postgres:5432/geotrack"
+  datasourceUsername: geotrack
+  openskyEnabled: "true"
+  aisstreamEnabled: "true"
+
+secrets:
+  datasourcePassword: geotrack
+  aisstreamApiKey: ""  # Set via: helm upgrade --set secrets.aisstreamApiKey=YOUR_KEY

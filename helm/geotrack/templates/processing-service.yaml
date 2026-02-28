@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "geotrack.fullname" . }}-processing
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    app.kubernetes.io/name: {{ include "geotrack.fullname" . }}-processing
+    app.kubernetes.io/component: processing
+    {{- include "geotrack.labels" . | nindent 4 }}
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: {{ include "geotrack.fullname" . }}-processing
+  ports:
+    - name: http
+      port: {{ .Values.processing.port }}
+      targetPort: http

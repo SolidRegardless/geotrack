@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32">
+  <!-- Boat icon pointing NORTH (up) -->
+  <g transform="translate(16,16)" fill="#00BCD4" stroke="#006064" stroke-width="0.5">
+    <path d="M0-14 L4-4 L4 6 Q2 10 0 10 Q-2 10 -4 6 L-4-4Z"/>
+    <rect x="-1" y="-10" width="2" height="12" fill="#006064" stroke="none"/>
+    <path d="M1-10 L8-2 L1-1Z" fill="#B2EBF2" stroke="#006064" stroke-width="0.5"/>
+  </g>
+</svg>

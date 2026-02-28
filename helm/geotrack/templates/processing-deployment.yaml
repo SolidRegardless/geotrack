@@ -1,0 +1,64 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "geotrack.fullname" . }}-processing
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    app.kubernetes.io/name: {{ include "geotrack.fullname" . }}-processing
+    app.kubernetes.io/component: processing
+    {{- include "geotrack.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.processing.replicaCount }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "geotrack.fullname" . }}-processing
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: {{ include "geotrack.fullname" . }}-processing
+        app.kubernetes.io/component: processing
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: processing
+          image: "{{ .Values.processing.image.repository }}:{{ .Values.processing.image.tag }}"
+          imagePullPolicy: {{ .Values.global.imagePullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.processing.port }}
+          env:
+            - name: QUARKUS_HTTP_PORT
+              value: "{{ .Values.processing.port }}"
+          envFrom:
+            - configMapRef:
+                name: {{ include "geotrack.fullname" . }}-config
+            - secretRef:
+                name: {{ include "geotrack.fullname" . }}-secrets
+          livenessProbe:
+            httpGet:
+              path: {{ .Values.processing.healthCheck.liveness }}
+              port: http
+            initialDelaySeconds: 15
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: {{ .Values.processing.healthCheck.readiness }}
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 5
+          resources:
+            {{- toYaml .Values.processing.resources | nindent 12 }}
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir: {}

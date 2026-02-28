@@ -1,0 +1,56 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: geotrack-simulator-live
+  namespace: geotrack
+  labels:
+    app.kubernetes.io/name: geotrack-simulator-live
+    app.kubernetes.io/component: simulator
+    app.kubernetes.io/part-of: geotrack
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: geotrack-simulator-live
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: geotrack-simulator-live
+        app.kubernetes.io/component: simulator
+        app.kubernetes.io/part-of: geotrack
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: simulator-live
+          image: ghcr.io/geotrack/geotrack-simulator:latest
+          command: ["java", "-jar", "quarkus-run.jar", "live"]
+          envFrom:
+            - configMapRef:
+                name: geotrack-config
+            - secretRef:
+                name: geotrack-secrets
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir: {}

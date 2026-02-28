@@ -1,0 +1,103 @@
+apiVersion: build.openshift.io/v1
+kind: BuildConfig
+metadata:
+  name: geotrack-api
+  namespace: geotrack
+  labels:
+    app.kubernetes.io/name: geotrack-api
+    app.kubernetes.io/part-of: geotrack
+spec:
+  source:
+    type: Git
+    git:
+      uri: https://github.com/YOUR_ORG/geotrack.git
+      ref: main
+    contextDir: geotrack-api
+  strategy:
+    type: Docker
+    dockerStrategy:
+      dockerfilePath: src/main/docker/Dockerfile.jvm
+  output:
+    to:
+      kind: ImageStreamTag
+      name: geotrack-api:latest
+  triggers:
+    - type: ConfigChange
+---
+apiVersion: build.openshift.io/v1
+kind: BuildConfig
+metadata:
+  name: geotrack-processing
+  namespace: geotrack
+  labels:
+    app.kubernetes.io/name: geotrack-processing
+    app.kubernetes.io/part-of: geotrack
+spec:
+  source:
+    type: Git
+    git:
+      uri: https://github.com/YOUR_ORG/geotrack.git
+      ref: main
+    contextDir: geotrack-processing
+  strategy:
+    type: Docker
+    dockerStrategy:
+      dockerfilePath: src/main/docker/Dockerfile.jvm
+  output:
+    to:
+      kind: ImageStreamTag
+      name: geotrack-processing:latest
+  triggers:
+    - type: ConfigChange
+---
+apiVersion: build.openshift.io/v1
+kind: BuildConfig
+metadata:
+  name: geotrack-simulator
+  namespace: geotrack
+  labels:
+    app.kubernetes.io/name: geotrack-simulator
+    app.kubernetes.io/part-of: geotrack
+spec:
+  source:
+    type: Git
+    git:
+      uri: https://github.com/YOUR_ORG/geotrack.git
+      ref: main
+    contextDir: geotrack-simulator
+  strategy:
+    type: Docker
+    dockerStrategy:
+      dockerfilePath: src/main/docker/Dockerfile.jvm
+  output:
+    to:
+      kind: ImageStreamTag
+      name: geotrack-simulator:latest
+  triggers:
+    - type: ConfigChange
+---
+apiVersion: build.openshift.io/v1
+kind: BuildConfig
+metadata:
+  name: geotrack-frontend
+  namespace: geotrack
+  labels:
+    app.kubernetes.io/name: geotrack-frontend
+    app.kubernetes.io/part-of: geotrack
+spec:
+  source:
+    type: Git
+    git:
+      uri: https://github.com/YOUR_ORG/geotrack.git
+      ref: main
+    contextDir: geotrack-frontend
+  strategy:
+    type: Docker
+    dockerStrategy:
+      dockerfilePath: Dockerfile
+  output:
+    to:
+      kind: ImageStreamTag
+      name: geotrack-frontend:latest
+  triggers:
+    - type: ConfigChange

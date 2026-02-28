@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "geotrack.fullname" . }}-config
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    {{- include "geotrack.labels" . | nindent 4 }}
+data:
+  QUARKUS_DATASOURCE_JDBC_URL: {{ .Values.config.datasourceUrl | quote }}
+  QUARKUS_DATASOURCE_USERNAME: {{ .Values.config.datasourceUsername | quote }}
+  QUARKUS_DATASOURCE_DB_KIND: "postgresql"
+  KAFKA_BOOTSTRAP: {{ .Values.config.kafkaBootstrapServers | quote }}
+  KAFKA_BOOTSTRAP_SERVERS: {{ .Values.config.kafkaBootstrapServers | quote }}
+  QUARKUS_HTTP_HOST: "0.0.0.0"
+  OPENSKY_ENABLED: {{ .Values.config.openskyEnabled | quote }}
+  AISSTREAM_ENABLED: {{ .Values.config.aisstreamEnabled | quote }}

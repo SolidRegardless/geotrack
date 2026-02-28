@@ -1,0 +1,26 @@
+GeoTrack has been deployed!
+
+1. Get the frontend URL:
+{{- if .Values.ingress.enabled }}
+  https://{{ .Values.ingress.host }}
+{{- else }}
+  kubectl port-forward svc/{{ include "geotrack.fullname" . }}-frontend 8080:80 -n {{ .Values.global.namespace }}
+  Then open: http://localhost:8080
+{{- end }}
+
+2. Get the API URL:
+{{- if .Values.ingress.enabled }}
+  https://{{ .Values.ingress.host }}/api
+{{- else }}
+  kubectl port-forward svc/{{ include "geotrack.fullname" . }}-api 8080:8080 -n {{ .Values.global.namespace }}
+  Then open: http://localhost:8080/api
+{{- end }}
+
+3. Check all pods are running:
+  kubectl get pods -n {{ .Values.global.namespace }}
+
+4. View logs:
+  kubectl logs -f deployment/{{ include "geotrack.fullname" . }}-api -n {{ .Values.global.namespace }}
+  kubectl logs -f deployment/{{ include "geotrack.fullname" . }}-processing -n {{ .Values.global.namespace }}
+  kubectl logs -f deployment/{{ include "geotrack.fullname" . }}-simulator-live -n {{ .Values.global.namespace }}
+  kubectl logs -f deployment/{{ include "geotrack.fullname" . }}-simulator-ships -n {{ .Values.global.namespace }}
