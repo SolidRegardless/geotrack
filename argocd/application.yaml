@@ -12,7 +12,11 @@ spec:
   source:
     repoURL: https://github.com/SolidRegardless/geotrack.git
     targetRevision: main
-    path: k8s/overlays/dev
+    path: helm/geotrack
+    helm:
+      valueFiles:
+        - values.yaml
+        - values-local.yaml
   destination:
     server: https://kubernetes.default.svc
     namespace: geotrack
