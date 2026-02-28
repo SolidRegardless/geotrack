@@ -272,9 +272,10 @@ export class TrackingMapComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * Refresh trail segment opacities based on age.
-   * Called periodically by the fade timer — not on every position update.
-   * Older segments fade out and get thinner; expired ones are removed.
+   * Refresh trail segment opacities based on position in the trail.
+   * The newest segment is fully opaque, the oldest is nearly transparent.
+   * This gives an immediate visual gradient regardless of elapsed time.
+   * Also prunes segments older than TRAIL_MAX_AGE_MS.
    */
   private refreshTrailOpacities(): void {
     const now = Date.now();
@@ -288,21 +289,18 @@ export class TrackingMapComponent implements OnInit, OnDestroy {
         points.shift();
         pruned++;
       }
-      // Remove corresponding segments from the map (segments are between consecutive points,
-      // so N points = N-1 segments; pruning K points removes K segments from the front)
       for (let i = 0; i < pruned && segments.length > 0; i++) {
         segments[0].remove();
         segments.shift();
       }
 
-      // Update opacity/weight on remaining segments
-      for (let i = 0; i < segments.length; i++) {
-        // Segment i connects points[i] to points[i+1]; use the newer point's time
-        const segTime = (i + 1 < points.length) ? points[i + 1].time : points[points.length - 1].time;
-        const age = now - segTime;
-        const ageFraction = Math.min(age / this.TRAIL_MAX_AGE_MS, 1);
-        const opacity = Math.max(0.05, 1.0 - ageFraction * 0.95);
-        const weight = Math.max(1, 3 - ageFraction * 2);
+      // Position-based fade: oldest segment in array → most transparent
+      const total = segments.length;
+      for (let i = 0; i < total; i++) {
+        // i=0 is oldest, i=total-1 is newest
+        const fraction = total > 1 ? i / (total - 1) : 1;
+        const opacity = 0.05 + fraction * 0.95;    // 0.05 → 1.0
+        const weight = 1 + fraction * 2;            // 1 → 3
 
         segments[i].setStyle({ opacity, weight });
       }
@@ -313,9 +311,11 @@ export class TrackingMapComponent implements OnInit, OnDestroy {
 
   /** Periodically refresh trail opacities so they continue fading over time */
   private startTrailFadeTimer(): void {
+    // Run an initial fade pass after 3 seconds to catch early trail data
+    setTimeout(() => this.refreshTrailOpacities(), 3000);
     this.trailFadeInterval = setInterval(() => {
       this.refreshTrailOpacities();
-    }, 15000); // Refresh fading every 15 seconds
+    }, 5000); // Refresh fading every 5 seconds
   }
 
   private createPopupHtml(position: AssetPosition): string {
