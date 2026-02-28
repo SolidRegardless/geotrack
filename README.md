@@ -1,3 +1,5 @@
+![Track everything. Panic less.](banner.png)
+
 # GeoTrack — Real-Time Geospatial Asset Tracking Platform
 
 > A cloud-native, event-driven microservice platform for ingesting, processing, and visualising geospatial asset positions in real-time. Built with **Java 21**, **Quarkus**, **Angular**, **PostgreSQL/PostGIS**, **Apache Kafka**, and deployed on **Kubernetes/OpenShift**.
