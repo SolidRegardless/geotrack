@@ -154,6 +154,19 @@ export class TrackingMapComponent implements OnInit, OnDestroy {
           const group = new L.FeatureGroup(Array.from(this.markers.values()));
           this.map.fitBounds(group.getBounds().pad(0.1));
         }
+
+        // Load recent position history to build initial trail lines
+        positions.forEach(pos => {
+          const from = new Date(Date.now() - 3600000).toISOString(); // last hour
+          this.apiService.getPositionHistory(pos.assetId, from).subscribe({
+            next: (history) => {
+              // Sort oldest first so the trail draws in order
+              history.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+              history.forEach(hp => this.appendToRoute(hp));
+            },
+            error: () => {} // Silently ignore — trails will build from live data
+          });
+        });
       },
       error: (err) => console.error('Failed to load initial positions:', err)
     });
@@ -205,6 +218,9 @@ export class TrackingMapComponent implements OnInit, OnDestroy {
       marker.bindPopup(this.createPopupHtml(position));
       marker.addTo(this.map);
       this.markers.set(position.assetId, marker);
+
+      // Start the route trail from the first position
+      this.appendToRoute(position);
     }
   }
 
@@ -217,8 +233,8 @@ export class TrackingMapComponent implements OnInit, OnDestroy {
     } else {
       const line = L.polyline([latLng], {
         color: this.getTrailColor(position.assetId),
-        weight: 2,
-        opacity: 0.6
+        weight: 3,
+        opacity: 0.8
       }).addTo(this.map);
       this.routeLines.set(position.assetId, line);
     }
