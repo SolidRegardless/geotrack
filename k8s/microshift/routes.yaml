@@ -1,0 +1,40 @@
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: geotrack-frontend
+  namespace: geotrack
+spec:
+  host: geotrack.local
+  to:
+    kind: Service
+    name: geotrack-frontend
+  port:
+    targetPort: 80
+---
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: geotrack-api
+  namespace: geotrack
+spec:
+  host: geotrack.local
+  path: /api
+  to:
+    kind: Service
+    name: geotrack-api
+  port:
+    targetPort: 8080
+---
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: geotrack-ws
+  namespace: geotrack
+spec:
+  host: geotrack.local
+  path: /ws
+  to:
+    kind: Service
+    name: geotrack-api
+  port:
+    targetPort: 8080
