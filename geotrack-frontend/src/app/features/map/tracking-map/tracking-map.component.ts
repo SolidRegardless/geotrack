@@ -245,6 +245,8 @@ export class TrackingMapComponent implements OnInit, OnDestroy {
       points = [];
       this.trailPoints.set(position.assetId, points);
     }
+
+    const prevPoint = points.length > 0 ? points[points.length - 1] : null;
     points.push(point);
 
     // Prune oldest points if over limit
@@ -252,64 +254,67 @@ export class TrackingMapComponent implements OnInit, OnDestroy {
       points.shift();
     }
 
-    // Rebuild the faded trail segments for this asset
-    this.rebuildTrail(position.assetId);
+    // Incrementally add just the new segment (no full rebuild)
+    if (prevPoint) {
+      const color = this.getTrailColor(position.assetId);
+      const seg = L.polyline(
+        [[prevPoint.lat, prevPoint.lng], [point.lat, point.lng]],
+        { color, weight: 3, opacity: 1.0, interactive: false }
+      ).addTo(this.map);
+
+      let segments = this.trailSegments.get(position.assetId);
+      if (!segments) {
+        segments = [];
+        this.trailSegments.set(position.assetId, segments);
+      }
+      segments.push(seg);
+    }
   }
 
   /**
-   * Rebuild all trail segments for an asset with opacity fading.
-   * Each segment between two consecutive points gets an opacity
-   * proportional to its age — newest segments are fully opaque,
-   * oldest segments are nearly transparent.
+   * Refresh trail segment opacities based on age.
+   * Called periodically by the fade timer — not on every position update.
+   * Older segments fade out and get thinner; expired ones are removed.
    */
-  private rebuildTrail(assetId: string): void {
-    // Remove existing segments from the map
-    const existing = this.trailSegments.get(assetId) || [];
-    existing.forEach(seg => seg.remove());
-
-    const points = this.trailPoints.get(assetId);
-    if (!points || points.length < 2) {
-      this.trailSegments.set(assetId, []);
-      return;
-    }
-
-    const color = this.getTrailColor(assetId);
+  private refreshTrailOpacities(): void {
     const now = Date.now();
-    const segments: L.Polyline[] = [];
 
-    for (let i = 0; i < points.length - 1; i++) {
-      const segmentTime = points[i + 1].time;
-      const age = now - segmentTime;
+    for (const [assetId, points] of this.trailPoints) {
+      const segments = this.trailSegments.get(assetId) || [];
 
-      // Opacity: 1.0 for brand new, fading to 0.05 at max age
-      const ageFraction = Math.min(age / this.TRAIL_MAX_AGE_MS, 1);
-      const opacity = Math.max(0.05, 1.0 - ageFraction * 0.95);
+      // Prune expired points and their segments
+      let pruned = 0;
+      while (points.length > 0 && (now - points[0].time) > this.TRAIL_MAX_AGE_MS) {
+        points.shift();
+        pruned++;
+      }
+      // Remove corresponding segments from the map (segments are between consecutive points,
+      // so N points = N-1 segments; pruning K points removes K segments from the front)
+      for (let i = 0; i < pruned && segments.length > 0; i++) {
+        segments[0].remove();
+        segments.shift();
+      }
 
-      // Slightly thinner for older segments
-      const weight = Math.max(1, 3 - ageFraction * 2);
+      // Update opacity/weight on remaining segments
+      for (let i = 0; i < segments.length; i++) {
+        // Segment i connects points[i] to points[i+1]; use the newer point's time
+        const segTime = (i + 1 < points.length) ? points[i + 1].time : points[points.length - 1].time;
+        const age = now - segTime;
+        const ageFraction = Math.min(age / this.TRAIL_MAX_AGE_MS, 1);
+        const opacity = Math.max(0.05, 1.0 - ageFraction * 0.95);
+        const weight = Math.max(1, 3 - ageFraction * 2);
 
-      const seg = L.polyline(
-        [[points[i].lat, points[i].lng], [points[i + 1].lat, points[i + 1].lng]],
-        { color, weight, opacity, interactive: false }
-      ).addTo(this.map);
+        segments[i].setStyle({ opacity, weight });
+      }
 
-      segments.push(seg);
+      this.trailSegments.set(assetId, segments);
     }
-
-    this.trailSegments.set(assetId, segments);
   }
 
   /** Periodically refresh trail opacities so they continue fading over time */
   private startTrailFadeTimer(): void {
     this.trailFadeInterval = setInterval(() => {
-      const now = Date.now();
-      for (const [assetId, points] of this.trailPoints) {
-        // Prune points older than max age
-        while (points.length > 0 && (now - points[0].time) > this.TRAIL_MAX_AGE_MS) {
-          points.shift();
-        }
-        this.rebuildTrail(assetId);
-      }
+      this.refreshTrailOpacities();
     }, 15000); // Refresh fading every 15 seconds
   }
 
