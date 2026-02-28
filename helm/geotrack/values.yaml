@@ -11,6 +11,9 @@ api:
     repository: ghcr.io/geotrack/geotrack-api
     tag: latest
   port: 8080
+  service:
+    type: NodePort
+    nodePort: 30080
   resources:
     requests:
       cpu: 250m
@@ -50,6 +53,9 @@ frontend:
     repository: ghcr.io/geotrack/geotrack-frontend
     tag: latest
   port: 80
+  service:
+    type: NodePort
+    nodePort: 30000
   resources:
     requests:
       cpu: 50m

@@ -9,7 +9,7 @@ metadata:
     app.kubernetes.io/part-of: geotrack
     helm.sh/chart: {{ include "geotrack.chart" . }}
 spec:
-  type: ClusterIP
+  type: {{ .Values.api.service.type | default "ClusterIP" }}
   selector:
     app.kubernetes.io/name: {{ include "geotrack.fullname" . }}-api
   ports:
@@ -17,3 +17,6 @@ spec:
       port: {{ .Values.api.port }}
       targetPort: http
       protocol: TCP
+      {{- if and (eq .Values.api.service.type "NodePort") .Values.api.service.nodePort }}
+      nodePort: {{ .Values.api.service.nodePort }}
+      {{- end }}
