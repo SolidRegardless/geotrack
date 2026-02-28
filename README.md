@@ -1211,7 +1211,7 @@ spec:
         fsGroup: 1001
       containers:
         - name: api
-          image: ghcr.io/your-org/geotrack-api:latest
+          image: ghcr.io/SolidRegardless/geotrack-api:latest
           ports:
             - containerPort: 8080
               name: http
@@ -1346,7 +1346,7 @@ spec:
       default: main
     - name: image-name
       type: string
-      default: ghcr.io/your-org/geotrack-api
+      default: ghcr.io/SolidRegardless/geotrack-api
   workspaces:
     - name: shared-workspace
     - name: maven-settings
@@ -1428,7 +1428,7 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: https://github.com/your-org/geotrack.git
+    repoURL: https://github.com/SolidRegardless/geotrack.git
     targetRevision: main
     path: k8s/overlays/production
   destination:
@@ -3079,7 +3079,7 @@ spec:
   source:
     type: Git
     git:
-      uri: https://github.com/your-org/geotrack.git
+      uri: https://github.com/SolidRegardless/geotrack.git
       ref: main
   strategy:
     type: Docker
@@ -3204,7 +3204,7 @@ replicaCount:
   frontend: 2
 
 image:
-  repository: ghcr.io/your-org/geotrack
+  repository: ghcr.io/SolidRegardless/geotrack
   tag: latest
   pullPolicy: IfNotPresent
 
@@ -3769,7 +3769,7 @@ geotrack/
 
 ```bash
 # Clone the repository
-git clone https://github.com/your-org/geotrack.git
+git clone https://github.com/SolidRegardless/geotrack.git
 cd geotrack
 
 # Start the API service in dev mode

@@ -10,7 +10,7 @@ spec:
   source:
     type: Git
     git:
-      uri: https://github.com/YOUR_ORG/geotrack.git
+      uri: https://github.com/SolidRegardless/geotrack.git
       ref: main
     contextDir: geotrack-api
   strategy:
@@ -36,7 +36,7 @@ spec:
   source:
     type: Git
     git:
-      uri: https://github.com/YOUR_ORG/geotrack.git
+      uri: https://github.com/SolidRegardless/geotrack.git
       ref: main
     contextDir: geotrack-processing
   strategy:
@@ -62,7 +62,7 @@ spec:
   source:
     type: Git
     git:
-      uri: https://github.com/YOUR_ORG/geotrack.git
+      uri: https://github.com/SolidRegardless/geotrack.git
       ref: main
     contextDir: geotrack-simulator
   strategy:
@@ -88,7 +88,7 @@ spec:
   source:
     type: Git
     git:
-      uri: https://github.com/YOUR_ORG/geotrack.git
+      uri: https://github.com/SolidRegardless/geotrack.git
       ref: main
     contextDir: geotrack-frontend
   strategy:

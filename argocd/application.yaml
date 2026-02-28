@@ -10,7 +10,7 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: https://github.com/YOUR_ORG/geotrack.git
+    repoURL: https://github.com/SolidRegardless/geotrack.git
     targetRevision: main
     path: k8s/overlays/dev
   destination:
