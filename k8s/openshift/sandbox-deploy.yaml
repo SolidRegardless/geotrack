@@ -1,0 +1,607 @@
+---
+# PostgreSQL with PostGIS
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: geotrack-postgres
+  namespace: stuarthart-dev
+  labels:
+    app: geotrack
+    component: postgres
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: geotrack
+      component: postgres
+  template:
+    metadata:
+      labels:
+        app: geotrack
+        component: postgres
+    spec:
+      containers:
+        - name: postgres
+          image: postgis/postgis:16-3.4
+          ports:
+            - containerPort: 5432
+          env:
+            - name: POSTGRES_DB
+              value: geotrack
+            - name: POSTGRES_USER
+              value: geotrack
+            - name: POSTGRES_PASSWORD
+              value: geotrack
+          resources:
+            requests:
+              cpu: 50m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+          volumeMounts:
+            - name: pgdata
+              mountPath: /var/lib/postgresql/data
+      volumes:
+        - name: pgdata
+          persistentVolumeClaim:
+            claimName: geotrack-pgdata
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: geotrack-pgdata
+  namespace: stuarthart-dev
+spec:
+  accessModes: [ReadWriteOnce]
+  resources:
+    requests:
+      storage: 5Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: geotrack-postgres
+  namespace: stuarthart-dev
+spec:
+  selector:
+    app: geotrack
+    component: postgres
+  ports:
+    - port: 5432
+      targetPort: 5432
+---
+# Kafka (Redpanda in KRaft mode)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: geotrack-kafka
+  namespace: stuarthart-dev
+  labels:
+    app: geotrack
+    component: kafka
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: geotrack
+      component: kafka
+  template:
+    metadata:
+      labels:
+        app: geotrack
+        component: kafka
+    spec:
+      containers:
+        - name: kafka
+          image: redpandadata/redpanda:v24.1.1
+          command:
+            - rpk
+            - redpanda
+            - start
+            - --mode=dev-container
+            - --smp=1
+            - --memory=256M
+            - --default-log-level=warn
+          ports:
+            - containerPort: 9092
+          resources:
+            requests:
+              cpu: 50m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: geotrack-kafka
+  namespace: stuarthart-dev
+spec:
+  selector:
+    app: geotrack
+    component: kafka
+  ports:
+    - port: 9092
+      targetPort: 9092
+---
+# API Service - BuildConfig + Deployment
+apiVersion: build.openshift.io/v1
+kind: BuildConfig
+metadata:
+  name: geotrack-api
+  namespace: stuarthart-dev
+spec:
+  source:
+    type: Docker
+    git:
+      uri: https://github.com/SolidRegardless/geotrack.git
+      ref: main
+    contextDir: /
+    dockerfile: |
+      FROM registry.access.redhat.com/ubi8/openjdk-21:latest AS build
+      USER root
+      WORKDIR /build
+      COPY pom.xml .
+      COPY geotrack-common/pom.xml geotrack-common/pom.xml
+      COPY geotrack-api/pom.xml geotrack-api/pom.xml
+      COPY geotrack-processing/pom.xml geotrack-processing/pom.xml
+      COPY geotrack-simulator/pom.xml geotrack-simulator/pom.xml
+      RUN mvn dependency:go-offline -pl geotrack-common,geotrack-api -am -q || true
+      COPY geotrack-common/src geotrack-common/src
+      COPY geotrack-api/src geotrack-api/src
+      RUN mvn package -pl geotrack-common,geotrack-api -am -DskipTests -q
+      FROM registry.access.redhat.com/ubi8/openjdk-21-runtime:latest
+      COPY --from=build /build/geotrack-api/target/quarkus-app /deployments/
+      EXPOSE 8080
+      ENV JAVA_APP_DIR=/deployments
+  strategy:
+    type: Docker
+  output:
+    to:
+      kind: ImageStreamTag
+      name: geotrack-api:latest
+  resources:
+    requests:
+      cpu: 500m
+      memory: 1Gi
+    limits:
+      cpu: 2
+      memory: 2Gi
+---
+apiVersion: image.openshift.io/v1
+kind: ImageStream
+metadata:
+  name: geotrack-api
+  namespace: stuarthart-dev
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: geotrack-api
+  namespace: stuarthart-dev
+  labels:
+    app: geotrack
+    component: api
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: geotrack
+      component: api
+  template:
+    metadata:
+      labels:
+        app: geotrack
+        component: api
+    spec:
+      containers:
+        - name: api
+          image: image-registry.openshift-image-registry.svc:5000/stuarthart-dev/geotrack-api:latest
+          ports:
+            - containerPort: 8080
+          env:
+            - name: QUARKUS_DATASOURCE_JDBC_URL
+              value: jdbc:postgresql://geotrack-postgres:5432/geotrack
+            - name: QUARKUS_DATASOURCE_USERNAME
+              value: geotrack
+            - name: QUARKUS_DATASOURCE_PASSWORD
+              value: geotrack
+            - name: KAFKA_BOOTSTRAP
+              value: geotrack-kafka:9092
+            - name: QUARKUS_HTTP_CORS_ORIGINS
+              value: "*"
+          resources:
+            requests:
+              cpu: 50m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+          readinessProbe:
+            httpGet:
+              path: /q/health/ready
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /q/health/live
+              port: 8080
+            initialDelaySeconds: 15
+            periodSeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: geotrack-api
+  namespace: stuarthart-dev
+spec:
+  selector:
+    app: geotrack
+    component: api
+  ports:
+    - port: 8080
+      targetPort: 8080
+---
+# Processing Service - BuildConfig + Deployment
+apiVersion: build.openshift.io/v1
+kind: BuildConfig
+metadata:
+  name: geotrack-processing
+  namespace: stuarthart-dev
+spec:
+  source:
+    type: Docker
+    git:
+      uri: https://github.com/SolidRegardless/geotrack.git
+      ref: main
+    contextDir: /
+    dockerfile: |
+      FROM registry.access.redhat.com/ubi8/openjdk-21:latest AS build
+      USER root
+      WORKDIR /build
+      COPY pom.xml .
+      COPY geotrack-common/pom.xml geotrack-common/pom.xml
+      COPY geotrack-api/pom.xml geotrack-api/pom.xml
+      COPY geotrack-processing/pom.xml geotrack-processing/pom.xml
+      COPY geotrack-simulator/pom.xml geotrack-simulator/pom.xml
+      RUN mvn dependency:go-offline -pl geotrack-common,geotrack-processing -am -q || true
+      COPY geotrack-common/src geotrack-common/src
+      COPY geotrack-processing/src geotrack-processing/src
+      RUN mvn package -pl geotrack-common,geotrack-processing -am -DskipTests -q
+      FROM registry.access.redhat.com/ubi8/openjdk-21-runtime:latest
+      COPY --from=build /build/geotrack-processing/target/quarkus-app /deployments/
+      EXPOSE 8080
+      ENV JAVA_APP_DIR=/deployments
+  strategy:
+    type: Docker
+  output:
+    to:
+      kind: ImageStreamTag
+      name: geotrack-processing:latest
+  resources:
+    requests:
+      cpu: 500m
+      memory: 1Gi
+    limits:
+      cpu: 2
+      memory: 2Gi
+---
+apiVersion: image.openshift.io/v1
+kind: ImageStream
+metadata:
+  name: geotrack-processing
+  namespace: stuarthart-dev
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: geotrack-processing
+  namespace: stuarthart-dev
+  labels:
+    app: geotrack
+    component: processing
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: geotrack
+      component: processing
+  template:
+    metadata:
+      labels:
+        app: geotrack
+        component: processing
+    spec:
+      containers:
+        - name: processing
+          image: image-registry.openshift-image-registry.svc:5000/stuarthart-dev/geotrack-processing:latest
+          ports:
+            - containerPort: 8080
+          env:
+            - name: KAFKA_BOOTSTRAP
+              value: geotrack-kafka:9092
+          resources:
+            requests:
+              cpu: 50m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: geotrack-processing
+  namespace: stuarthart-dev
+spec:
+  selector:
+    app: geotrack
+    component: processing
+  ports:
+    - port: 8080
+      targetPort: 8080
+---
+# Simulator - BuildConfig + Deployment (live aircraft)
+apiVersion: build.openshift.io/v1
+kind: BuildConfig
+metadata:
+  name: geotrack-simulator
+  namespace: stuarthart-dev
+spec:
+  source:
+    type: Docker
+    git:
+      uri: https://github.com/SolidRegardless/geotrack.git
+      ref: main
+    contextDir: /
+    dockerfile: |
+      FROM registry.access.redhat.com/ubi8/openjdk-21:latest AS build
+      USER root
+      WORKDIR /build
+      COPY pom.xml .
+      COPY geotrack-common/pom.xml geotrack-common/pom.xml
+      COPY geotrack-api/pom.xml geotrack-api/pom.xml
+      COPY geotrack-processing/pom.xml geotrack-processing/pom.xml
+      COPY geotrack-simulator/pom.xml geotrack-simulator/pom.xml
+      RUN mvn dependency:go-offline -pl geotrack-common,geotrack-simulator -am -q || true
+      COPY geotrack-common/src geotrack-common/src
+      COPY geotrack-simulator/src geotrack-simulator/src
+      RUN mvn package -pl geotrack-common,geotrack-simulator -am -DskipTests -q
+      FROM registry.access.redhat.com/ubi8/openjdk-21-runtime:latest
+      COPY --from=build /build/geotrack-simulator/target/quarkus-app /deployments/
+      EXPOSE 8080
+      ENV JAVA_APP_DIR=/deployments
+  strategy:
+    type: Docker
+  output:
+    to:
+      kind: ImageStreamTag
+      name: geotrack-simulator:latest
+  resources:
+    requests:
+      cpu: 500m
+      memory: 1Gi
+    limits:
+      cpu: 2
+      memory: 2Gi
+---
+apiVersion: image.openshift.io/v1
+kind: ImageStream
+metadata:
+  name: geotrack-simulator
+  namespace: stuarthart-dev
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: geotrack-simulator-live
+  namespace: stuarthart-dev
+  labels:
+    app: geotrack
+    component: simulator-live
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: geotrack
+      component: simulator-live
+  template:
+    metadata:
+      labels:
+        app: geotrack
+        component: simulator-live
+    spec:
+      containers:
+        - name: simulator
+          image: image-registry.openshift-image-registry.svc:5000/stuarthart-dev/geotrack-simulator:latest
+          args: ["live", "--interval", "30"]
+          env:
+            - name: KAFKA_BOOTSTRAP
+              value: geotrack-kafka:9092
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+            limits:
+              cpu: 250m
+              memory: 256Mi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: geotrack-simulator-ships
+  namespace: stuarthart-dev
+  labels:
+    app: geotrack
+    component: simulator-ships
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: geotrack
+      component: simulator-ships
+  template:
+    metadata:
+      labels:
+        app: geotrack
+        component: simulator-ships
+    spec:
+      containers:
+        - name: simulator
+          image: image-registry.openshift-image-registry.svc:5000/stuarthart-dev/geotrack-simulator:latest
+          args: ["ships", "--api-key", "$(AISSTREAM_API_KEY)"]
+          env:
+            - name: KAFKA_BOOTSTRAP
+              value: geotrack-kafka:9092
+            - name: AISSTREAM_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: geotrack-secrets
+                  key: aisstream-api-key
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+            limits:
+              cpu: 250m
+              memory: 256Mi
+---
+# Frontend - BuildConfig + Deployment
+apiVersion: build.openshift.io/v1
+kind: BuildConfig
+metadata:
+  name: geotrack-frontend
+  namespace: stuarthart-dev
+spec:
+  source:
+    type: Docker
+    git:
+      uri: https://github.com/SolidRegardless/geotrack.git
+      ref: main
+    contextDir: geotrack-frontend
+    dockerfile: |
+      FROM node:22-alpine AS build
+      WORKDIR /app
+      COPY package*.json ./
+      RUN npm ci
+      COPY . .
+      RUN npx ng build --configuration=production
+      FROM nginxinc/nginx-unprivileged:alpine
+      COPY --from=build /app/dist/geotrack-frontend/browser /usr/share/nginx/html
+      COPY nginx-openshift.conf /etc/nginx/conf.d/default.conf
+      EXPOSE 8080
+      CMD ["nginx", "-g", "daemon off;"]
+  strategy:
+    type: Docker
+  output:
+    to:
+      kind: ImageStreamTag
+      name: geotrack-frontend:latest
+  resources:
+    requests:
+      cpu: 500m
+      memory: 1Gi
+    limits:
+      cpu: 2
+      memory: 2Gi
+---
+apiVersion: image.openshift.io/v1
+kind: ImageStream
+metadata:
+  name: geotrack-frontend
+  namespace: stuarthart-dev
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: geotrack-frontend
+  namespace: stuarthart-dev
+  labels:
+    app: geotrack
+    component: frontend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: geotrack
+      component: frontend
+  template:
+    metadata:
+      labels:
+        app: geotrack
+        component: frontend
+    spec:
+      containers:
+        - name: frontend
+          image: image-registry.openshift-image-registry.svc:5000/stuarthart-dev/geotrack-frontend:latest
+          ports:
+            - containerPort: 8080
+          resources:
+            requests:
+              cpu: 10m
+              memory: 64Mi
+            limits:
+              cpu: 200m
+              memory: 128Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: geotrack-frontend
+  namespace: stuarthart-dev
+spec:
+  selector:
+    app: geotrack
+    component: frontend
+  ports:
+    - port: 8080
+      targetPort: 8080
+---
+# Routes (OpenShift's external access)
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: geotrack-frontend
+  namespace: stuarthart-dev
+  labels:
+    app: geotrack
+spec:
+  to:
+    kind: Service
+    name: geotrack-frontend
+  port:
+    targetPort: 8080
+  tls:
+    termination: edge
+    insecureEdgeTerminationPolicy: Redirect
+---
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: geotrack-api
+  namespace: stuarthart-dev
+  labels:
+    app: geotrack
+spec:
+  path: /
+  to:
+    kind: Service
+    name: geotrack-api
+  port:
+    targetPort: 8080
+  tls:
+    termination: edge
+    insecureEdgeTerminationPolicy: Redirect
+---
+# Secret for API keys
+apiVersion: v1
+kind: Secret
+metadata:
+  name: geotrack-secrets
+  namespace: stuarthart-dev
+type: Opaque
+stringData:
+  aisstream-api-key: "df71fdfc562824461adc24eef6fe58ca3d2b04dc"
