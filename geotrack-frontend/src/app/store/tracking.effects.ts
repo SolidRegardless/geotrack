@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { inject, Injectable } from '@angular/core';
 import { Actions, createEffect, ofType } from '@ngrx/effects';
 import { of } from 'rxjs';
 import { map, exhaustMap, catchError } from 'rxjs/operators';
@@ -7,6 +7,9 @@ import { TrackingActions } from './tracking.actions';
 
 @Injectable()
 export class TrackingEffects {
+
+  private actions$ = inject(Actions);
+  private apiService = inject(ApiService);
 
   loadLatestPositions$ = createEffect(() =>
     this.actions$.pipe(
@@ -31,9 +34,4 @@ export class TrackingEffects {
       )
     )
   );
-
-  constructor(
-    private actions$: Actions,
-    private apiService: ApiService
-  ) {}
 }
