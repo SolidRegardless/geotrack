@@ -73,8 +73,10 @@
 14. [Security Considerations](#14-security-considerations)
 15. [Observability](#15-observability)
 16. [Project Structure](#16-project-structure)
-17. [Getting Started](#17-getting-started)
-18. [Agile Delivery](#18-agile-delivery)
+17. [Technology Stack — Layers Diagram](#17-technology-stack--layers-diagram)
+18. [Documentation](#18-documentation)
+19. [Getting Started](#19-getting-started)
+20. [Agile Delivery](#20-agile-delivery)
 
 ---
 
@@ -101,7 +103,7 @@ This project is designed to demonstrate proficiency across the full software dev
 | Cloud services development | Kubernetes-native, 12-factor app design, cloud-managed databases |
 | Unit & automated testing | JUnit 5, Mockito, Testcontainers, REST Assured, Cypress |
 | Code quality & reviews | SonarQube gates, Checkstyle, SpotBugs, architectural fitness functions |
-| Reusable patterns | Repository pattern, event sourcing, CQRS, specification pattern |
+| Reusable patterns | Repository pattern, CQRS, cache-aside, specification pattern |
 | DevSecOps | Tekton pipelines, ArgoCD GitOps, container scanning, SAST/DAST |
 | OpenShift/Kubernetes | Full deployment manifests, Helm charts, health probes, resource management |
 | Quarkus Framework | Native-image builds, CDI, reactive messaging, Dev Services |
@@ -3489,9 +3491,9 @@ mindmap
       CQRS
         Write: Kafka → Processing
         Read: REST API → PostGIS
-      Event Sourcing
-        Position history as event log
-        Replayable from Kafka
+      Cache-Aside
+        Redis PositionCacheService
+        TTL-based invalidation
       Hexagonal Architecture
         Ports: interfaces
         Adapters: implementations
@@ -3811,7 +3813,104 @@ geotrack/
 
 ---
 
-## 17. Getting Started
+## 17. Technology Stack — Layers Diagram
+
+```mermaid
+block-beta
+    columns 1
+
+    block:PRESENTATION["🖥️ PRESENTATION LAYER"]
+        columns 4
+        A19["Angular 19"] Leaflet["Leaflet.js"] NgRx["NgRx Store"] RxJS["RxJS"]
+    end
+
+    block:COMMUNICATION["📡 COMMUNICATION LAYER"]
+        columns 3
+        REST["REST API\n(RESTEasy Reactive)"] WS["WebSocket\n(/ws/tracking)"] OpenAPI["OpenAPI 3.1\n(SmallRye)"]
+    end
+
+    block:APPLICATION["⚙️ APPLICATION LAYER"]
+        columns 4
+        Quarkus["Quarkus 3.x"] CQRS["CQRS\nCommand/Query"] MapStruct["MapStruct\n(CDI Producer)"] BeanVal["Bean\nValidation"]
+    end
+
+    block:DOMAIN["🧠 DOMAIN LAYER"]
+        columns 4
+        Java21["Java 21"] JTS["JTS Topology\nSuite"] HibSpatial["Hibernate\nSpatial"] Geofence["Geofence\nEngine"]
+    end
+
+    block:DATA["💾 DATA LAYER"]
+        columns 3
+        PostGIS["PostgreSQL\n+ PostGIS"] Kafka["Apache Kafka\n(KRaft)"] Redis["Redis\nCache-Aside"]
+    end
+
+    block:DEVOPS["🚀 DEVOPS LAYER"]
+        columns 4
+        Skaffold["Skaffold\n(Local Dev)"] Tekton["Tekton\n(CI/CD)"] ArgoCD["ArgoCD\n(GitOps)"] SonarQube["SonarQube\n(Quality)"]
+    end
+
+    block:INFRA["☸️ INFRASTRUCTURE LAYER"]
+        columns 4
+        K8s["Kubernetes"] Helm["Helm v3"] Docker["Docker\n(BuildKit)"] OShift["OpenShift\nReady"]
+    end
+
+    style PRESENTATION fill:#E91E63,stroke:#880E4F,color:#fff
+    style COMMUNICATION fill:#FF9800,stroke:#E65100,color:#fff
+    style APPLICATION fill:#FFC107,stroke:#FF8F00,color:#000
+    style DOMAIN fill:#4CAF50,stroke:#1B5E20,color:#fff
+    style DATA fill:#2196F3,stroke:#0D47A1,color:#fff
+    style DEVOPS fill:#9C27B0,stroke:#4A148C,color:#fff
+    style INFRA fill:#607D8B,stroke:#263238,color:#fff
+```
+
+---
+
+## 18. Documentation
+
+Comprehensive documentation is available in the `docs/` directory:
+
+### 📋 Runbooks (Operational Guides)
+
+| Runbook | Covers |
+|---|---|
+| [01 — Quarkus API](docs/runbooks/01-quarkus-api.md) | Java 21, CQRS, MapStruct, Hibernate Spatial, endpoints |
+| [02 — Angular Frontend](docs/runbooks/02-angular-frontend.md) | Angular 19, NgRx, Leaflet, WebSocket |
+| [03 — PostgreSQL & PostGIS](docs/runbooks/03-postgresql-postgis.md) | Spatial SQL, GIST indexes, schema |
+| [04 — Apache Kafka](docs/runbooks/04-kafka.md) | KRaft mode, topics, AISStream.io integration |
+| [05 — Redis](docs/runbooks/05-redis.md) | Cache-aside pattern, PositionCacheService |
+| [06 — Docker](docs/runbooks/06-docker.md) | Images, multi-stage builds, tagging |
+| [07 — Kubernetes & Helm](docs/runbooks/07-kubernetes-helm.md) | Cluster architecture, Helm chart, NodePorts |
+| [08 — Skaffold](docs/runbooks/08-skaffold.md) | Local dev pipeline, watch mode |
+| [09 — Tekton CI/CD](docs/runbooks/09-tekton.md) | Pipeline, tasks, GitHub webhook triggers |
+| [10 — ArgoCD GitOps](docs/runbooks/10-argocd.md) | GitOps sync, rollbacks |
+| [11 — SonarQube](docs/runbooks/11-sonarqube.md) | Quality gates, Tekton integration |
+
+### 📐 Architecture Decision Records (ADRs)
+
+| ADR | Decision |
+|---|---|
+| [ADR-001](docs/architecture-decisions/ADR-001-cqrs-pattern.md) | CQRS Pattern — separate command/query services |
+| [ADR-002](docs/architecture-decisions/ADR-002-query-params-over-path-params.md) | Query params over path params for special-char asset IDs |
+| [ADR-003](docs/architecture-decisions/ADR-003-mapstruct-cdi-integration.md) | MapStruct CDI integration via producer pattern |
+| [ADR-004](docs/architecture-decisions/ADR-004-kafka-kraft-mode.md) | Kafka KRaft mode (no ZooKeeper) |
+| [ADR-005](docs/architecture-decisions/ADR-005-skaffold-over-custom-scripts.md) | Skaffold over custom PowerShell scripts |
+| [ADR-006](docs/architecture-decisions/ADR-006-helm-v3-over-v4.md) | Helm v3 over v4 (Skaffold compatibility) |
+| [ADR-007](docs/architecture-decisions/ADR-007-ngrx-inject-pattern.md) | NgRx inject() over constructor injection |
+| [ADR-008](docs/architecture-decisions/ADR-008-postgis-spatial-queries.md) | PostGIS spatial SQL over JTS in-memory |
+| [ADR-009](docs/architecture-decisions/ADR-009-redis-cache-aside.md) | Redis cache-aside pattern |
+| [ADR-010](docs/architecture-decisions/ADR-010-sonarqube-disabled-locally.md) | SonarQube disabled for local development |
+
+### 📡 API Reference
+
+| Resource | Description |
+|---|---|
+| [API Reference](docs/api/API-REFERENCE.md) | Full endpoint documentation with examples |
+| [OpenAPI Spec](docs/api/openapi.yaml) | Auto-generated OpenAPI 3.1 spec |
+| Swagger UI | Interactive API explorer at `/q/swagger-ui` (when running) |
+
+---
+
+## 19. Getting Started
 
 ### Prerequisites
 
@@ -3914,7 +4013,7 @@ kubectl apply -k k8s/overlays/production/
 
 ---
 
-## 18. Agile Delivery
+## 20. Agile Delivery
 
 GeoTrack is designed for Agile Scrum delivery:
 
