@@ -1,6 +1,6 @@
 import { Component, OnInit, OnDestroy, ChangeDetectionStrategy, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Subject, takeUntil } from 'rxjs';
+import { Subject, takeUntil, from as from$, of, mergeMap, catchError } from 'rxjs';
 import * as L from 'leaflet';
 import { ApiService } from '../../../core/api.service';
 import { WebSocketService } from '../../../core/websocket.service';
@@ -184,17 +184,19 @@ export class TrackingMapComponent implements OnInit, OnDestroy {
           this.map.fitBounds(group.getBounds().pad(0.1));
         }
 
-        // Load recent position history to build initial trail lines
-        positions.forEach(pos => {
-          const from = new Date(Date.now() - 3600000).toISOString(); // last hour
-          this.apiService.getPositionHistory(pos.assetId, from).subscribe({
-            next: (history) => {
-              // Sort oldest first so the trail draws in order
-              history.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
-              history.forEach(hp => this.appendToRoute(hp));
-            },
-            error: () => {} // Silently ignore — trails will build from live data
-          });
+        // Load recent position history to build initial trail lines.
+        // Use mergeMap with concurrency limit to load in parallel without exhausting connections.
+        const trailFrom = new Date(Date.now() - 1800000).toISOString(); // last 30 minutes
+        from$(positions).pipe(
+          mergeMap(pos =>
+            this.apiService.getPositionHistory(pos.assetId, trailFrom).pipe(
+              catchError(() => of([] as AssetPosition[]))
+            ),
+            6 // max 6 concurrent requests
+          )
+        ).subscribe(history => {
+          history.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+          history.forEach(hp => this.appendToRoute(hp));
         });
       },
       error: (err) => console.error('Failed to load initial positions:', err)
