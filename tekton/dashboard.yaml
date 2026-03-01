@@ -1,0 +1,72 @@
+---
+# Tekton Dashboard — read-write mode
+# Apply with: kubectl apply -f tekton/dashboard.yaml
+# Access at: http://localhost:30090
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tekton-dashboard
+  namespace: tekton-pipelines
+  labels:
+    app: tekton-dashboard
+    app.kubernetes.io/component: dashboard
+    app.kubernetes.io/part-of: tekton-dashboard
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: tekton-dashboard
+  template:
+    metadata:
+      labels:
+        app: tekton-dashboard
+    spec:
+      containers:
+        - name: dashboard
+          image: ghcr.io/tektoncd/dashboard/dashboard-9623576a202fe86c8b7d1bc489905f86:v0.63.1
+          args:
+            - --default-namespace=
+            - --external-logs=
+            - --log-format=json
+            - --log-level=info
+            - --logout-url=
+            - --namespaces=
+            - --pipelines-namespace=tekton-pipelines
+            - --port=9097
+            - --read-only=false
+            - --stream-logs=true
+            - --triggers-namespace=tekton-pipelines
+          ports:
+            - containerPort: 9097
+              protocol: TCP
+          env:
+            - name: INSTALLED_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 9097
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: 9097
+      serviceAccountName: tekton-dashboard
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: tekton-dashboard
+  namespace: tekton-pipelines
+  labels:
+    app: tekton-dashboard
+spec:
+  type: NodePort
+  ports:
+    - port: 9097
+      targetPort: 9097
+      nodePort: 30090
+      protocol: TCP
+  selector:
+    app: tekton-dashboard
