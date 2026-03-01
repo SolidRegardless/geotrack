@@ -20,7 +20,7 @@ spec:
       containers:
         - name: sonarqube
           image: "{{ .Values.sonarqube.image.repository }}:{{ .Values.sonarqube.image.tag }}"
-          imagePullPolicy: {{ .Values.global.imagePullPolicy }}
+          imagePullPolicy: {{ .Values.sonarqube.image.pullPolicy | default .Values.global.imagePullPolicy }}
           ports:
             - containerPort: {{ .Values.sonarqube.port }}
               name: http
