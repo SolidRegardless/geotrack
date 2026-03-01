@@ -1,0 +1,69 @@
+apiVersion: skaffold/v4beta11
+kind: Config
+metadata:
+  name: geotrack
+
+build:
+  local:
+    push: false
+    useBuildkit: true
+    concurrency: 1
+  hooks:
+    before:
+      - command: ["mvn", "clean", "package", "-Dmaven.test.skip=true", "-q"]
+        os: [windows, darwin, linux]
+        dir: .
+  artifacts:
+    - image: geotrack-api
+      context: geotrack-api
+      docker:
+        dockerfile: src/main/docker/Dockerfile.jvm
+
+    - image: geotrack-processing
+      context: geotrack-processing
+      docker:
+        dockerfile: src/main/docker/Dockerfile.jvm
+
+    - image: geotrack-simulator
+      context: geotrack-simulator
+      docker:
+        dockerfile: src/main/docker/Dockerfile.jvm
+
+    - image: geotrack-frontend
+      context: geotrack-frontend
+      docker:
+        dockerfile: Dockerfile
+
+deploy:
+  helm:
+    releases:
+      - name: geotrack
+        chartPath: helm/geotrack
+        namespace: geotrack
+        createNamespace: true
+        valuesFiles:
+          - helm/geotrack/values-local.yaml
+        setValues:
+          global.imagePullPolicy: Never
+        setValueTemplates:
+          api.image.repository: "{{.IMAGE_REPO_geotrack_api}}"
+          api.image.tag: "{{.IMAGE_TAG_geotrack_api}}"
+          processing.image.repository: "{{.IMAGE_REPO_geotrack_processing}}"
+          processing.image.tag: "{{.IMAGE_TAG_geotrack_processing}}"
+          simulator.image.repository: "{{.IMAGE_REPO_geotrack_simulator}}"
+          simulator.image.tag: "{{.IMAGE_TAG_geotrack_simulator}}"
+          frontend.image.repository: "{{.IMAGE_REPO_geotrack_frontend}}"
+          frontend.image.tag: "{{.IMAGE_TAG_geotrack_frontend}}"
+        wait: true
+
+portForward:
+  - resourceType: service
+    resourceName: geotrack-frontend
+    namespace: geotrack
+    port: 80
+    localPort: 30000
+  - resourceType: service
+    resourceName: geotrack-api
+    namespace: geotrack
+    port: 8080
+    localPort: 30080
