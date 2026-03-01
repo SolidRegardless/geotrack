@@ -176,63 +176,69 @@ public class AISStreamIngestor {
             String mmsi = meta.path("MMSI_String").asText("");
             if (mmsi.isEmpty()) return;
 
-            // Rate limit per MMSI
             Instant now = Instant.now();
-            Instant lastTime = lastPublishTime.get(mmsi);
-            if (lastTime != null && now.toEpochMilli() - lastTime.toEpochMilli() < RATE_LIMIT_MS) {
-                return;
-            }
+            if (isRateLimited(mmsi, now)) return;
 
             double latitude = meta.path("latitude").asDouble();
             double longitude = meta.path("longitude").asDouble();
             if (latitude == 0.0 && longitude == 0.0) return;
 
-            // Asset ID: prefer ship name, fallback to MMSI
-            String shipName = meta.path("ShipName").asText("").trim();
-            String assetId = "SHIP-" + (!shipName.isEmpty() ? shipName : mmsi);
-
-            // Speed: Sog in knots → km/h
-            double speed = posReport.path("Sog").asDouble(0) * 1.852;
-
-            // Heading: TrueHeading (511 = unavailable), fallback to Cog
-            int trueHeading = posReport.path("TrueHeading").asInt(511);
-            double heading;
-            if (trueHeading != 511 && trueHeading >= 0 && trueHeading <= 360) {
-                heading = trueHeading;
-            } else {
-                double cog = posReport.path("Cog").asDouble(0);
-                heading = (cog > 360 || cog < 0) ? 0 : (cog == 360 ? 0 : cog);
-            }
-
-            // Timestamp
-            Instant timestamp;
-            try {
-                String timeUtc = meta.path("time_utc").asText("");
-                // Format: "2024-01-15 12:34:56.789012345 +0000 UTC"
-                String cleaned = timeUtc.replace(" UTC", "");
-                timestamp = Instant.from(TIME_PARSER.parse(cleaned));
-            } catch (Exception e) {
-                timestamp = now;
-            }
-
-            Position position = new Position(
-                    UUID.randomUUID(),
-                    assetId,
-                    latitude,
-                    longitude,
-                    0.0, // altitude - sea level
-                    speed,
-                    heading,
-                    timestamp,
-                    PositionSource.AIS
-            );
-
+            Position position = buildPosition(meta, posReport, mmsi, latitude, longitude, now);
             producer.send(position);
             lastPublishTime.put(mmsi, now);
             counter.incrementAndGet();
 
         } catch (Exception e) {
             Log.warnf(e, "Failed to process AIS message: %s", message.substring(0, Math.min(200, message.length())));
+        }
+    }
+
+    private boolean isRateLimited(String mmsi, Instant now) {
+        Instant lastTime = lastPublishTime.get(mmsi);
+        return lastTime != null && now.toEpochMilli() - lastTime.toEpochMilli() < RATE_LIMIT_MS;
+    }
+
+    private Position buildPosition(JsonNode meta, JsonNode posReport, String mmsi,
+                                   double latitude, double longitude, Instant now) {
+        String shipName = meta.path("ShipName").asText("").trim();
+        String assetId = "SHIP-" + (!shipName.isEmpty() ? shipName : mmsi);
+
+        double speed = posReport.path("Sog").asDouble(0) * 1.852;
+        double heading = resolveHeading(posReport);
+        Instant timestamp = parseTimestamp(meta, now);
+
+        return new Position(
+                UUID.randomUUID(),
+                assetId,
+                latitude,
+                longitude,
+                0.0,
+                speed,
+                heading,
+                timestamp,
+                PositionSource.AIS
+        );
+    }
+
+    private double resolveHeading(JsonNode posReport) {
+        int trueHeading = posReport.path("TrueHeading").asInt(511);
+        if (trueHeading != 511 && trueHeading >= 0 && trueHeading <= 360) {
+            return trueHeading;
+        }
+        double cog = posReport.path("Cog").asDouble(0);
+        if (cog < 0 || cog >= 360) {
+            return 0;
+        }
+        return cog;
+    }
+
+    private Instant parseTimestamp(JsonNode meta, Instant fallback) {
+        try {
+            String timeUtc = meta.path("time_utc").asText("");
+            String cleaned = timeUtc.replace(" UTC", "");
+            return Instant.from(TIME_PARSER.parse(cleaned));
+        } catch (Exception e) {
+            return fallback;
         }
     }
 }
