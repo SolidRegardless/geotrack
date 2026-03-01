@@ -11,6 +11,7 @@ import jakarta.ws.rs.core.Response;
 import org.eclipse.microprofile.openapi.annotations.Operation;
 import org.eclipse.microprofile.openapi.annotations.tags.Tag;
 
+import java.time.Instant;
 import java.util.List;
 
 /**
@@ -47,5 +48,19 @@ public class PositionResource {
     @Operation(summary = "Get latest position per asset")
     public List<PositionResponse> getLatestPositions() {
         return positionService.getLatestPositions();
+    }
+
+    @GET
+    @Path("/history")
+    @Operation(summary = "Get position history for an asset by string ID (handles special characters)")
+    public List<PositionResponse> getPositionHistoryByQuery(
+            @QueryParam("assetId") String assetId,
+            @QueryParam("from") String fromStr,
+            @QueryParam("to") String toStr,
+            @QueryParam("limit") @DefaultValue("1000") int limit) {
+
+        Instant from = fromStr != null ? Instant.parse(fromStr) : null;
+        Instant to = toStr != null ? Instant.parse(toStr) : null;
+        return positionService.getPositionHistory(assetId, from, to, limit);
     }
 }

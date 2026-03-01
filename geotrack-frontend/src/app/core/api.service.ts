@@ -49,10 +49,10 @@ export class ApiService {
   }
 
   getPositionHistory(assetId: string, from?: string, to?: string): Observable<AssetPosition[]> {
-    let params = new HttpParams();
+    let params = new HttpParams().set('assetId', assetId);
     if (from) params = params.set('from', from);
     if (to) params = params.set('to', to);
-    return this.http.get<AssetPosition[]>(`${this.baseUrl}/assets/${assetId}/positions`, { params });
+    return this.http.get<AssetPosition[]>(`${this.baseUrl}/positions/history`, { params });
   }
 
   submitPosition(position: {
