@@ -3816,43 +3816,39 @@ geotrack/
 ## 17. Technology Stack — Layers Diagram
 
 ```mermaid
-block-beta
-    columns 1
-
-    block:PRESENTATION["🖥️ PRESENTATION LAYER"]
-        columns 4
-        A19["Angular 19"] Leaflet["Leaflet.js"] NgRx["NgRx Store"] RxJS["RxJS"]
+graph TB
+    subgraph PRESENTATION["🖥️ Presentation Layer"]
+        A19["Angular 19"] ~~~ Leaflet["Leaflet.js"] ~~~ NgRx["NgRx Store"] ~~~ RxJS["RxJS"]
     end
 
-    block:COMMUNICATION["📡 COMMUNICATION LAYER"]
-        columns 3
-        REST["REST API\n(RESTEasy Reactive)"] WS["WebSocket\n(/ws/tracking)"] OpenAPI["OpenAPI 3.1\n(SmallRye)"]
+    subgraph COMMUNICATION["📡 Communication Layer"]
+        REST["REST API<br/>RESTEasy Reactive"] ~~~ WS["WebSocket<br/>/ws/tracking"] ~~~ OpenAPI["OpenAPI 3.1<br/>SmallRye"]
     end
 
-    block:APPLICATION["⚙️ APPLICATION LAYER"]
-        columns 4
-        Quarkus["Quarkus 3.x"] CQRS["CQRS\nCommand/Query"] MapStruct["MapStruct\n(CDI Producer)"] BeanVal["Bean\nValidation"]
+    subgraph APPLICATION["⚙️ Application Layer"]
+        Quarkus["Quarkus 3.x"] ~~~ CQRS["CQRS<br/>Command / Query"] ~~~ MapStruct["MapStruct<br/>CDI Producer"] ~~~ BeanVal["Bean<br/>Validation"]
     end
 
-    block:DOMAIN["🧠 DOMAIN LAYER"]
-        columns 4
-        Java21["Java 21"] JTS["JTS Topology\nSuite"] HibSpatial["Hibernate\nSpatial"] Geofence["Geofence\nEngine"]
+    subgraph DOMAIN["🧠 Domain Layer"]
+        Java21["Java 21"] ~~~ JTS["JTS Topology<br/>Suite"] ~~~ HibSpatial["Hibernate<br/>Spatial"] ~~~ Geofence["Geofence<br/>Engine"]
     end
 
-    block:DATA["💾 DATA LAYER"]
-        columns 3
-        PostGIS["PostgreSQL\n+ PostGIS"] Kafka["Apache Kafka\n(KRaft)"] Redis["Redis\nCache-Aside"]
+    subgraph DATA["💾 Data Layer"]
+        PostGIS["PostgreSQL<br/>+ PostGIS"] ~~~ Kafka["Apache Kafka<br/>KRaft"] ~~~ Redis["Redis<br/>Cache-Aside"]
     end
 
-    block:DEVOPS["🚀 DEVOPS LAYER"]
-        columns 4
-        Skaffold["Skaffold\n(Local Dev)"] Tekton["Tekton\n(CI/CD)"] ArgoCD["ArgoCD\n(GitOps)"] SonarQube["SonarQube\n(Quality)"]
+    subgraph DEVOPS["🚀 DevOps Layer"]
+        Skaffold["Skaffold<br/>Local Dev"] ~~~ Tekton["Tekton<br/>CI/CD"] ~~~ ArgoCD["ArgoCD<br/>GitOps"] ~~~ SonarQube["SonarQube<br/>Quality"]
     end
 
-    block:INFRA["☸️ INFRASTRUCTURE LAYER"]
-        columns 4
-        K8s["Kubernetes"] Helm["Helm v3"] Docker["Docker\n(BuildKit)"] OShift["OpenShift\nReady"]
+    subgraph INFRA["☸️ Infrastructure Layer"]
+        K8s["Kubernetes"] ~~~ Helm["Helm v3"] ~~~ Docker["Docker<br/>BuildKit"] ~~~ OShift["OpenShift<br/>Ready"]
     end
+
+    PRESENTATION --> COMMUNICATION --> APPLICATION --> DOMAIN --> DATA
+    APPLICATION --> DEVOPS
+    DEVOPS --> INFRA
+    DATA --> INFRA
 
     style PRESENTATION fill:#E91E63,stroke:#880E4F,color:#fff
     style COMMUNICATION fill:#FF9800,stroke:#E65100,color:#fff
@@ -3861,6 +3857,33 @@ block-beta
     style DATA fill:#2196F3,stroke:#0D47A1,color:#fff
     style DEVOPS fill:#9C27B0,stroke:#4A148C,color:#fff
     style INFRA fill:#607D8B,stroke:#263238,color:#fff
+
+    style A19 fill:#E91E63,stroke:#fff,color:#fff
+    style Leaflet fill:#E91E63,stroke:#fff,color:#fff
+    style NgRx fill:#E91E63,stroke:#fff,color:#fff
+    style RxJS fill:#E91E63,stroke:#fff,color:#fff
+    style REST fill:#FF9800,stroke:#fff,color:#fff
+    style WS fill:#FF9800,stroke:#fff,color:#fff
+    style OpenAPI fill:#FF9800,stroke:#fff,color:#fff
+    style Quarkus fill:#FFC107,stroke:#fff,color:#000
+    style CQRS fill:#FFC107,stroke:#fff,color:#000
+    style MapStruct fill:#FFC107,stroke:#fff,color:#000
+    style BeanVal fill:#FFC107,stroke:#fff,color:#000
+    style Java21 fill:#4CAF50,stroke:#fff,color:#fff
+    style JTS fill:#4CAF50,stroke:#fff,color:#fff
+    style HibSpatial fill:#4CAF50,stroke:#fff,color:#fff
+    style Geofence fill:#4CAF50,stroke:#fff,color:#fff
+    style PostGIS fill:#2196F3,stroke:#fff,color:#fff
+    style Kafka fill:#2196F3,stroke:#fff,color:#fff
+    style Redis fill:#2196F3,stroke:#fff,color:#fff
+    style Skaffold fill:#9C27B0,stroke:#fff,color:#fff
+    style Tekton fill:#9C27B0,stroke:#fff,color:#fff
+    style ArgoCD fill:#9C27B0,stroke:#fff,color:#fff
+    style SonarQube fill:#9C27B0,stroke:#fff,color:#fff
+    style K8s fill:#607D8B,stroke:#fff,color:#fff
+    style Helm fill:#607D8B,stroke:#fff,color:#fff
+    style Docker fill:#607D8B,stroke:#fff,color:#fff
+    style OShift fill:#607D8B,stroke:#fff,color:#fff
 ```
 
 ---
