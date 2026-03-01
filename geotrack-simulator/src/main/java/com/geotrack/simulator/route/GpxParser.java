@@ -21,6 +21,12 @@ public class GpxParser {
     public List<RoutePoint> parse(InputStream input) {
         try {
             var factory = DocumentBuilderFactory.newInstance();
+            // Disable XXE (XML External Entity) processing — OWASP recommendation
+            factory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
+            factory.setFeature("http://xml.org/sax/features/external-general-entities", false);
+            factory.setFeature("http://xml.org/sax/features/external-parameter-entities", false);
+            factory.setAttribute("http://javax.xml.XMLConstants/property/accessExternalDTD", "");
+            factory.setAttribute("http://javax.xml.XMLConstants/property/accessExternalSchema", "");
             factory.setNamespaceAware(false);
             Document doc = factory.newDocumentBuilder().parse(input);
 
