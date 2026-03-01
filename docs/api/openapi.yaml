@@ -1,0 +1,518 @@
+---
+openapi: 3.1.0
+tags:
+- name: Alerts
+  description: Alert management and acknowledgement
+- name: Assets
+  description: Asset management and tracking
+- name: Geofences
+  description: Geofence zone management
+- name: Positions
+  description: Position ingestion and spatial queries
+components:
+  schemas:
+    AlertResponse:
+      type: object
+      properties:
+        id:
+          $ref: "#/components/schemas/UUID"
+        assetId:
+          $ref: "#/components/schemas/UUID"
+        geofenceId:
+          $ref: "#/components/schemas/UUID"
+        alertType:
+          type: string
+        severity:
+          $ref: "#/components/schemas/Severity"
+        message:
+          type: string
+        acknowledged:
+          type: boolean
+        acknowledgedBy:
+          type: string
+        acknowledgedAt:
+          $ref: "#/components/schemas/Instant"
+        createdAt:
+          $ref: "#/components/schemas/Instant"
+    AssetResponse:
+      type: object
+      properties:
+        id:
+          $ref: "#/components/schemas/UUID"
+        name:
+          type: string
+        type:
+          $ref: "#/components/schemas/AssetType"
+        status:
+          $ref: "#/components/schemas/AssetStatus"
+        createdAt:
+          $ref: "#/components/schemas/Instant"
+        updatedAt:
+          $ref: "#/components/schemas/Instant"
+    AssetStatus:
+      type: string
+      enum:
+      - ACTIVE
+      - INACTIVE
+      - MAINTENANCE
+      - DECOMMISSIONED
+    AssetType:
+      type: string
+      enum:
+      - VEHICLE
+      - DRONE
+      - VESSEL
+      - PERSONNEL
+      - AIRCRAFT
+      - SENSOR
+    CreateAssetRequest:
+      type: object
+      required:
+      - name
+      - type
+      properties:
+        name:
+          type: string
+          minLength: 2
+          maxLength: 255
+          pattern: \S
+        type:
+          $ref: "#/components/schemas/AssetType"
+        metadata:
+          type: string
+    CreateGeofenceRequest:
+      type: object
+      required:
+      - name
+      - fenceType
+      - coordinates
+      properties:
+        name:
+          type: string
+          minLength: 2
+          maxLength: 255
+          pattern: \S
+        description:
+          type: string
+        fenceType:
+          $ref: "#/components/schemas/FenceType"
+        coordinates:
+          type: array
+          minItems: 3
+          items: {}
+        alertOnEnter:
+          type: boolean
+        alertOnExit:
+          type: boolean
+    FenceType:
+      type: string
+      enum:
+      - INCLUSION
+      - EXCLUSION
+    GeofenceResponse:
+      type: object
+      properties:
+        id:
+          $ref: "#/components/schemas/UUID"
+        name:
+          type: string
+        description:
+          type: string
+        fenceType:
+          $ref: "#/components/schemas/FenceType"
+        active:
+          type: boolean
+        alertOnEnter:
+          type: boolean
+        alertOnExit:
+          type: boolean
+        createdAt:
+          $ref: "#/components/schemas/Instant"
+    Instant:
+      type: string
+      format: date-time
+      examples:
+      - 2022-03-10T16:15:50Z
+    PositionResponse:
+      type: object
+      properties:
+        id:
+          $ref: "#/components/schemas/UUID"
+        assetId:
+          type: string
+        latitude:
+          type: number
+          format: double
+        longitude:
+          type: number
+          format: double
+        altitude:
+          type: number
+          format: double
+        speed:
+          type: number
+          format: double
+        heading:
+          type: number
+          format: double
+        timestamp:
+          $ref: "#/components/schemas/Instant"
+        source:
+          type: string
+    Severity:
+      type: string
+      enum:
+      - LOW
+      - MEDIUM
+      - HIGH
+      - CRITICAL
+    SubmitPositionRequest:
+      type: object
+      required:
+      - assetId
+      - timestamp
+      properties:
+        assetId:
+          type: string
+          pattern: \S
+        latitude:
+          type: number
+          format: double
+          maximum: 90
+          minimum: -90
+        longitude:
+          type: number
+          format: double
+          maximum: 180
+          minimum: -180
+        altitude:
+          type: number
+          format: double
+        speed:
+          type: number
+          format: double
+        heading:
+          type: number
+          format: double
+          maximum: 360
+          minimum: 0
+        timestamp:
+          $ref: "#/components/schemas/Instant"
+    UUID:
+      type: string
+      format: uuid
+      pattern: "[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}"
+paths:
+  /api/v1/alerts:
+    get:
+      summary: List alerts
+      tags:
+      - Alerts
+      parameters:
+      - name: acknowledged
+        in: query
+        schema:
+          type: boolean
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AlertResponse"
+  /api/v1/alerts/asset/{assetId}:
+    get:
+      summary: Get alerts for a specific asset
+      tags:
+      - Alerts
+      parameters:
+      - name: assetId
+        in: path
+        required: true
+        schema:
+          $ref: "#/components/schemas/UUID"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AlertResponse"
+  /api/v1/alerts/{id}/acknowledge:
+    put:
+      summary: Acknowledge an alert
+      tags:
+      - Alerts
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          $ref: "#/components/schemas/UUID"
+      - name: username
+        in: query
+        schema:
+          type: string
+          default: operator
+      responses:
+        "200":
+          description: OK
+  /api/v1/assets:
+    get:
+      summary: List assets
+      description: Returns paginated list of assets with optional filtering
+      tags:
+      - Assets
+      parameters:
+      - name: page
+        in: query
+        schema:
+          type: integer
+          format: int32
+          default: 0
+      - name: size
+        in: query
+        schema:
+          type: integer
+          format: int32
+          default: 20
+      - name: sort
+        in: query
+        schema:
+          type: string
+          default: name
+      - name: status
+        in: query
+        schema:
+          $ref: "#/components/schemas/AssetStatus"
+      - name: type
+        in: query
+        schema:
+          $ref: "#/components/schemas/AssetType"
+      responses:
+        "200":
+          description: OK
+    post:
+      summary: Create a new asset
+      tags:
+      - Assets
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateAssetRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+  /api/v1/assets/{id}:
+    get:
+      summary: Get asset by ID
+      tags:
+      - Assets
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          $ref: "#/components/schemas/UUID"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AssetResponse"
+    delete:
+      summary: Deactivate an asset
+      tags:
+      - Assets
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          $ref: "#/components/schemas/UUID"
+      responses:
+        "200":
+          description: OK
+  /api/v1/assets/{id}/positions:
+    get:
+      summary: Get position history for an asset
+      tags:
+      - Assets
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: from
+        in: query
+        schema:
+          $ref: "#/components/schemas/Instant"
+      - name: limit
+        in: query
+        schema:
+          type: integer
+          format: int32
+          default: 1000
+      - name: to
+        in: query
+        schema:
+          $ref: "#/components/schemas/Instant"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/PositionResponse"
+  /api/v1/geofences:
+    get:
+      summary: List all geofences
+      tags:
+      - Geofences
+      parameters:
+      - name: active
+        in: query
+        schema:
+          type: boolean
+          default: false
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/GeofenceResponse"
+    post:
+      summary: Create a new geofence
+      tags:
+      - Geofences
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateGeofenceRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+  /api/v1/geofences/{id}:
+    get:
+      summary: Get geofence by ID
+      tags:
+      - Geofences
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          $ref: "#/components/schemas/UUID"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GeofenceResponse"
+    delete:
+      summary: Deactivate a geofence
+      tags:
+      - Geofences
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          $ref: "#/components/schemas/UUID"
+      responses:
+        "200":
+          description: OK
+  /api/v1/positions:
+    post:
+      summary: Submit a position update
+      tags:
+      - Positions
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SubmitPositionRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+    get:
+      summary: Get all recent positions (defaults to latest per asset)
+      tags:
+      - Positions
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/PositionResponse"
+  /api/v1/positions/history:
+    get:
+      summary: Get position history for an asset by string ID (handles special characters)
+      tags:
+      - Positions
+      parameters:
+      - name: assetId
+        in: query
+        schema:
+          type: string
+      - name: from
+        in: query
+        schema:
+          type: string
+      - name: limit
+        in: query
+        schema:
+          type: integer
+          format: int32
+          default: 1000
+      - name: to
+        in: query
+        schema:
+          type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/PositionResponse"
+  /api/v1/positions/latest:
+    get:
+      summary: Get latest position per asset
+      tags:
+      - Positions
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/PositionResponse"
+info:
+  title: GeoTrack API
+  version: 1.0.0
+  description: Real-Time Geospatial Asset Tracking Platform
