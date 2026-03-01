@@ -51,7 +51,7 @@ public class GpxParser {
 
             return points;
         } catch (Exception e) {
-            throw new RuntimeException("Failed to parse GPX: " + e.getMessage(), e);
+            throw new GpxParseException("Failed to parse GPX: " + e.getMessage(), e);
         }
     }
 
