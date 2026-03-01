@@ -3,7 +3,6 @@ package com.geotrack.api.mapper;
 import com.geotrack.api.dto.AssetResponse;
 import com.geotrack.api.dto.CreateAssetRequest;
 import com.geotrack.api.model.AssetEntity;
-import com.geotrack.common.model.AssetStatus;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.factory.Mappers;

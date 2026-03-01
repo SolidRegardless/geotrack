@@ -52,6 +52,7 @@ public class AssetRepository implements PanacheRepositoryBase<AssetEntity, UUID>
         return count(query.toString(), params);
     }
 
+    @Override
     public Optional<AssetEntity> findByIdOptional(UUID id) {
         return find("id", id).firstResultOptional();
     }

@@ -29,7 +29,7 @@ public record CreateGeofenceRequest(
         boolean alertOnExit
 ) {
     public CreateGeofenceRequest {
-        if (alertOnEnter == false && alertOnExit == false) {
+        if (!alertOnEnter && !alertOnExit) {
             // Default: alert on both
             alertOnEnter = true;
             alertOnExit = true;
