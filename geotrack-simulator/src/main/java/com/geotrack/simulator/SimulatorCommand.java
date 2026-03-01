@@ -86,6 +86,9 @@ public class SimulatorCommand implements Runnable {
         for (Future<?> f : futures) {
             try {
                 f.get();
+            } catch (InterruptedException e) {
+                Log.errorf(e, "Vehicle simulation failed");
+                Thread.currentThread().interrupt();
             } catch (Exception e) {
                 Log.errorf(e, "Vehicle simulation failed");
             }
@@ -113,6 +116,9 @@ public class SimulatorCommand implements Runnable {
             });
 
             Log.info("🏁 GPX replay complete");
+        } catch (InterruptedException e) {
+            Log.errorf(e, "GPX replay failed");
+            Thread.currentThread().interrupt();
         } catch (Exception e) {
             Log.errorf(e, "GPX replay failed");
         }
