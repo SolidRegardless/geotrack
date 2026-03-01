@@ -57,7 +57,7 @@ public class FleetSimulator {
         try {
             Log.infof("Starting fleet simulation: %d vehicles at %.1f× speed", vehicles.size(), speedMultiplier);
 
-            List<Future<Void>> futures = new ArrayList<>(vehicles.stream()
+            return new ArrayList<>(vehicles.stream()
                     .map(vehicle -> executor.submit(() -> {
                         Thread.currentThread().setName("sim-" + vehicle.assetId());
                         Log.infof("Vehicle %s (%s) [%s] starting route with %d waypoints",
@@ -72,8 +72,6 @@ public class FleetSimulator {
                         return null;
                     }))
                     .toList());
-
-            return futures;
         } finally {
             executor.shutdown();
             try {
