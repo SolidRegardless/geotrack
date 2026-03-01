@@ -52,12 +52,12 @@ public class FleetSimulator {
     /**
      * Run the simulation — each vehicle replays its route on a virtual thread.
      */
-    public List<Future<?>> simulate(Consumer<Position> positionConsumer) {
+    public List<Future<Void>> simulate(Consumer<Position> positionConsumer) {
         ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor();
 
         Log.infof("Starting fleet simulation: %d vehicles at %.1f× speed", vehicles.size(), speedMultiplier);
 
-        List<Future<?>> futures = new ArrayList<>(vehicles.stream()
+        List<Future<Void>> futures = new ArrayList<>(vehicles.stream()
                 .map(vehicle -> executor.submit(() -> {
                     Thread.currentThread().setName("sim-" + vehicle.assetId());
                     Log.infof("Vehicle %s (%s) [%s] starting route with %d waypoints",
@@ -69,6 +69,7 @@ public class FleetSimulator {
                         Thread.currentThread().interrupt();
                         Log.warnf("Vehicle %s interrupted", vehicle.assetId());
                     }
+                    return (Void) null;
                 }))
                 .toList());
 

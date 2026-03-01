@@ -87,7 +87,7 @@ public class SimulatorCommand implements Runnable {
         });
 
         // Wait for all vehicles to complete
-        for (Future<?> f : futures) {
+        for (Future<Void> f : futures) {
             try {
                 f.get();
             } catch (InterruptedException e) {
