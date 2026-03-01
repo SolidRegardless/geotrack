@@ -110,6 +110,44 @@ This project is designed to demonstrate proficiency across the full software dev
 
 ---
 
+## Technology Stack Layers
+
+```mermaid
+block-beta
+    columns 1
+    block:presentation["🖥️ PRESENTATION"]
+        p1["Angular 19"] p2["Leaflet"] p3["NgRx"] p4["WebSocket"]
+    end
+    block:api["🔌 API GATEWAY"]
+        a1["Quarkus REST"] a2["JAX-RS"] a3["OpenAPI"]
+    end
+    block:domain["⚙️ DOMAIN SERVICES"]
+        d1["CQRS"] d2["Geofence Engine"] d3["JTS"] d4["MapStruct"] d5["Redis"]
+    end
+    block:streaming["📡 EVENT STREAMING"]
+        e1["Apache Kafka"] e2["SmallRye Reactive Messaging"]
+    end
+    block:persistence["💾 PERSISTENCE"]
+        db1["PostgreSQL"] db2["PostGIS"] db3["Hibernate Spatial"]
+    end
+    block:infra["☸️ INFRASTRUCTURE / PLATFORM"]
+        i1["Docker"] i2["Kubernetes"] i3["Helm"] i4["Skaffold"] i5["Tekton"] i6["ArgoCD"]
+    end
+    block:quality["✅ QUALITY"]
+        q1["SonarQube"] q2["JUnit 5"] q3["Testcontainers"]
+    end
+
+    style presentation fill:#E91E63,color:#fff
+    style api fill:#9C27B0,color:#fff
+    style domain fill:#3F51B5,color:#fff
+    style streaming fill:#00897B,color:#fff
+    style persistence fill:#F57F17,color:#fff
+    style infra fill:#326CE5,color:#fff
+    style quality fill:#2E7D32,color:#fff
+```
+
+---
+
 ## 2. Architecture
 
 ### 2.1 High-Level System Architecture
@@ -1477,6 +1515,23 @@ sonar.java.checkstyle.reportPaths=target/checkstyle-result.xml
 sonar.java.spotbugs.reportPaths=target/spotbugsXml.xml
 ```
 
+#### Skaffold — Local Kubernetes Development
+
+**Skaffold** handles the build-tag-deploy workflow for local Kubernetes development. The `skaffold.yaml` at the project root orchestrates:
+
+1. **Pre-build hook** — Maven multi-module build
+2. **Docker builds** — 4 images (api, processing, simulator, frontend)
+3. **Image tagging** — Git SHA-based tags (not `latest`)
+4. **Helm deploy** — Deploys the Helm chart to the local cluster
+
+```bash
+# One-command build and deploy
+skaffold run
+
+# Watch mode — rebuilds and redeploys on code changes
+skaffold dev
+```
+
 ---
 
 ## 4. Java — Power & Limitations
@@ -1924,6 +1979,7 @@ classDiagram
 | `GET` | `/api/v1/positions/latest` | Get latest position per asset |
 | `GET` | `/api/v1/positions/within` | Positions within bounding box |
 | `GET` | `/api/v1/positions/nearby` | Positions near a point + radius |
+| `GET` | `/api/v1/positions/history?assetId=...` | Position history by asset ID (supports IDs with special characters) |
 
 #### Geofence Endpoints
 
@@ -3741,6 +3797,7 @@ geotrack/
 │       ├── values.yaml
 │       └── templates/
 │
+├── skaffold.yaml                       # Skaffold build/deploy config
 ├── docker-compose.yml                  # Local development stack
 ├── sonar-project.properties            # SonarQube configuration
 ├── .github/
@@ -3765,7 +3822,8 @@ geotrack/
 | Node.js | 20 (LTS) | Angular frontend build |
 | Docker | 24+ | Container runtime (for Dev Services) |
 | kubectl | 1.28+ | Kubernetes CLI |
-| helm | 3.13+ | Kubernetes package manager |
+| helm | 3.x | Kubernetes package manager |
+| Skaffold | 2.17+ | Local Kubernetes build/deploy workflow |
 
 ### Quick Start (Development)
 
@@ -3817,6 +3875,27 @@ ng e2e               # E2E tests (Cypress)
 ```
 
 ### Build & Deploy
+
+#### Skaffold (Recommended)
+
+```bash
+# One-command build and deploy to local Kubernetes
+skaffold run
+
+# Development mode with hot-reload
+skaffold dev
+
+# Deploy with AIS live ship data
+skaffold run --set secrets.aisstreamApiKey=YOUR_KEY
+
+# Access points after deploy:
+# Frontend:         http://localhost:30000
+# API:              http://localhost:30080/api/v1
+# Tekton Dashboard: http://localhost:30090
+# ArgoCD:           https://localhost:30091
+```
+
+#### Alternative: Manual Build & Deploy
 
 ```bash
 # Build container images
