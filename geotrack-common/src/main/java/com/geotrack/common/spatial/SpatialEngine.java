@@ -187,16 +187,24 @@ public class SpatialEngine {
         double phi2 = Math.toRadians(lat2);
         double deltaLambda = Math.toRadians(lon2 - lon1);
 
-        double U1 = Math.atan((1 - f) * Math.tan(phi1));
-        double U2 = Math.atan((1 - f) * Math.tan(phi2));
-        double sinU1 = Math.sin(U1), cosU1 = Math.cos(U1);
-        double sinU2 = Math.sin(U2), cosU2 = Math.cos(U2);
+        // U1, U2 = reduced latitudes in Vincenty formula
+        double u1 = Math.atan((1 - f) * Math.tan(phi1));
+        double u2 = Math.atan((1 - f) * Math.tan(phi2));
+        double sinU1 = Math.sin(u1);
+        double cosU1 = Math.cos(u1);
+        double sinU2 = Math.sin(u2);
+        double cosU2 = Math.cos(u2);
 
         double lambda = deltaLambda;
         double lambdaPrev;
         int iterations = 0;
 
-        double sinSigma, cosSigma, sigma, sinAlpha, cos2Alpha, cos2SigmaM;
+        double sinSigma;
+        double cosSigma;
+        double sigma;
+        double sinAlpha;
+        double cos2Alpha;
+        double cos2SigmaM;
 
         do {
             double sinLambda = Math.sin(lambda);

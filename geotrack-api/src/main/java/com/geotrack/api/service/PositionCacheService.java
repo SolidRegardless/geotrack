@@ -1,6 +1,5 @@
 package com.geotrack.api.service;
 
-import io.quarkus.redis.datasource.ReactiveRedisDataSource;
 import io.quarkus.redis.datasource.RedisDataSource;
 import io.quarkus.redis.datasource.value.ValueCommands;
 import jakarta.enterprise.context.ApplicationScoped;
