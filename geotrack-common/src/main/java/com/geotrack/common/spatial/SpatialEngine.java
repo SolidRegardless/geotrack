@@ -223,11 +223,12 @@ public class SpatialEngine {
                     ? cosSigma - 2 * sinU1 * sinU2 / cos2Alpha
                     : 0;
 
-            double C = f / 16 * cos2Alpha * (4 + f * (4 - 3 * cos2Alpha));
+            // C coefficient in Vincenty's correction formula
+            double correctionC = f / 16 * cos2Alpha * (4 + f * (4 - 3 * cos2Alpha));
             lambdaPrev = lambda;
-            lambda = deltaLambda + (1 - C) * f * sinAlpha
-                    * (sigma + C * sinSigma
-                    * (cos2SigmaM + C * cosSigma * (-1 + 2 * cos2SigmaM * cos2SigmaM)));
+            lambda = deltaLambda + (1 - correctionC) * f * sinAlpha
+                    * (sigma + correctionC * sinSigma
+                    * (cos2SigmaM + correctionC * cosSigma * (-1 + 2 * cos2SigmaM * cos2SigmaM)));
         } while (Math.abs(lambda - lambdaPrev) > 1e-12 && ++iterations < 200);
 
         if (iterations >= 200) {
@@ -236,18 +237,19 @@ public class SpatialEngine {
         }
 
         double uSquared = cos2Alpha * (a * a - b * b) / (b * b);
-        double A2 = 1 + uSquared / 16384
+        // Vincenty coefficients A and B (named a2/b2 for camelCase compliance)
+        double a2 = 1 + uSquared / 16384
                 * (4096 + uSquared * (-768 + uSquared * (320 - 175 * uSquared)));
-        double B2 = uSquared / 1024
+        double b2 = uSquared / 1024
                 * (256 + uSquared * (-128 + uSquared * (74 - 47 * uSquared)));
-        double deltaSigma = B2 * sinSigma
-                * (cos2SigmaM + B2 / 4
+        double deltaSigma = b2 * sinSigma
+                * (cos2SigmaM + b2 / 4
                 * (cosSigma * (-1 + 2 * cos2SigmaM * cos2SigmaM)
-                - B2 / 6 * cos2SigmaM
+                - b2 / 6 * cos2SigmaM
                 * (-3 + 4 * sinSigma * sinSigma)
                 * (-3 + 4 * cos2SigmaM * cos2SigmaM)));
 
-        return b * A2 * (sigma - deltaSigma);
+        return b * a2 * (sigma - deltaSigma);
     }
 
     /**
@@ -255,13 +257,13 @@ public class SpatialEngine {
      * Treats Earth as a perfect sphere (mean radius 6,371km).
      */
     private double haversineDistance(double lat1, double lon1, double lat2, double lon2) {
-        double R = 6_371_000; // Earth mean radius in metres
+        double earthRadius = 6_371_000; // Earth mean radius in metres
         double dLat = Math.toRadians(lat2 - lat1);
         double dLon = Math.toRadians(lon2 - lon1);
         double a = Math.sin(dLat / 2) * Math.sin(dLat / 2)
                 + Math.cos(Math.toRadians(lat1)) * Math.cos(Math.toRadians(lat2))
                 * Math.sin(dLon / 2) * Math.sin(dLon / 2);
         double c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-        return R * c;
+        return earthRadius * c;
     }
 }
