@@ -10,8 +10,11 @@ build:
     concurrency: 1
   hooks:
     before:
+      - command: ["mvn.cmd", "clean", "package", "-Dmaven.test.skip=true", "-q"]
+        os: [windows]
+        dir: .
       - command: ["mvn", "clean", "package", "-Dmaven.test.skip=true", "-q"]
-        os: [windows, darwin, linux]
+        os: [darwin, linux]
         dir: .
   artifacts:
     - image: geotrack-api
