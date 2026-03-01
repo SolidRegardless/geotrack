@@ -94,8 +94,8 @@ public class AISStreamIngestor {
 
         Log.info("🚢 Connecting to AISStream.io...");
 
-        String subscriptionJson = String.format("""
-                {"Apikey":"%s","BoundingBoxes":[[[49.0,-12.0],[61.0,3.0]]],"FilterMessageTypes":["PositionReport"]}""",
+        String subscriptionJson = String.format(
+                "{\"Apikey\":\"%s\",\"BoundingBoxes\":[[[49.0,-12.0],[61.0,3.0]]],\"FilterMessageTypes\":[\"PositionReport\"]}",
                 apiKey);
 
         this.httpClient = HttpClient.newHttpClient();

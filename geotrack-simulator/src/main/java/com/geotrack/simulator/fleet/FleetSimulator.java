@@ -69,7 +69,7 @@ public class FleetSimulator {
                             Thread.currentThread().interrupt();
                             Log.warnf("Vehicle %s interrupted", vehicle.assetId());
                         }
-                        return (Void) null;
+                        return null;
                     }))
                     .toList());
 
