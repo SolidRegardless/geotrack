@@ -69,7 +69,7 @@ public class FleetSimulator {
                             Thread.currentThread().interrupt();
                             Log.warnf("Vehicle %s interrupted", vehicle.assetId());
                         }
-                        return null;
+                        return (Void) null; // Cast required for Future<Void> type inference
                     }))
                     .toList());
         } finally {
