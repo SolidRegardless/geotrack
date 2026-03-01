@@ -53,41 +53,27 @@ public class LiveIngestCommand implements Runnable {
             return t;
         });
 
+        // Graceful shutdown on SIGINT
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            Log.info("🛑 Shutting down OpenSky ingestor...");
+            scheduler.shutdown();
+            shutdownLatch.countDown();
+        }));
+
+        scheduler.scheduleAtFixedRate(() -> {
+            try {
+                ingestor.poll();
+            } catch (Exception e) {
+                Log.errorf(e, "Error during OpenSky poll cycle");
+            }
+        }, 0, intervalSeconds, TimeUnit.SECONDS);
+
+        // Block until shutdown signal
         try {
-            // Graceful shutdown on SIGINT
-            Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-                Log.info("🛑 Shutting down OpenSky ingestor...");
-                scheduler.shutdown();
-                shutdownLatch.countDown();
-            }));
-
-            scheduler.scheduleAtFixedRate(() -> {
-                try {
-                    ingestor.poll();
-                } catch (Exception e) {
-                    Log.errorf(e, "Error during OpenSky poll cycle");
-                }
-            }, 0, intervalSeconds, TimeUnit.SECONDS);
-
-            // Block until shutdown signal
-            try {
-                shutdownLatch.await();
-                scheduler.awaitTermination(10, TimeUnit.SECONDS);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-            }
-        } finally {
-            if (!scheduler.isShutdown()) {
-                scheduler.shutdown();
-            }
-            try {
-                if (!scheduler.awaitTermination(10, TimeUnit.SECONDS)) {
-                    scheduler.shutdownNow();
-                }
-            } catch (InterruptedException e) {
-                scheduler.shutdownNow();
-                Thread.currentThread().interrupt();
-            }
+            shutdownLatch.await();
+            scheduler.awaitTermination(5, TimeUnit.SECONDS);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
         }
 
         Log.info("✈ OpenSky ingestor stopped");

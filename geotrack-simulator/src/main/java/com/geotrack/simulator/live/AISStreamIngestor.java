@@ -48,7 +48,6 @@ public class AISStreamIngestor {
     private final AtomicInteger totalReceived = new AtomicInteger();
     private final AtomicBoolean running = new AtomicBoolean(true);
     private final ScheduledExecutorService scheduler;
-    private HttpClient httpClient;
 
     public AISStreamIngestor(PositionProducer producer, String apiKey) {
         this.producer = producer;
@@ -75,18 +74,6 @@ public class AISStreamIngestor {
     public void stop() {
         running.set(false);
         scheduler.shutdown();
-        try {
-            if (!scheduler.awaitTermination(10, TimeUnit.SECONDS)) {
-                scheduler.shutdownNow();
-            }
-        } catch (InterruptedException e) {
-            scheduler.shutdownNow();
-            Thread.currentThread().interrupt();
-        }
-        if (httpClient != null) {
-            httpClient.close();
-            httpClient = null;
-        }
     }
 
     private void connect() {
@@ -98,8 +85,8 @@ public class AISStreamIngestor {
                 {"Apikey":"%s","BoundingBoxes":[[[49.0,-12.0],[61.0,3.0]]],"FilterMessageTypes":["PositionReport"]}""",
                 apiKey);
 
-        this.httpClient = HttpClient.newHttpClient();
-        httpClient.newWebSocketBuilder()
+        HttpClient.newHttpClient()
+                .newWebSocketBuilder()
                 .buildAsync(URI.create(WS_URL), new WebSocket.Listener() {
 
                     private final StringBuilder buffer = new StringBuilder();

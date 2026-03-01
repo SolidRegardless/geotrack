@@ -116,7 +116,7 @@ public class PositionEventConsumer {
         } catch (Exception e) {
             Log.errorf(e, "Failed to process position event: %s", payload);
             // SmallRye DLQ strategy will route this to position.dlq
-            throw new PositionProcessingException("Position processing failed", e);
+            throw new RuntimeException("Position processing failed", e);
         }
     }
 

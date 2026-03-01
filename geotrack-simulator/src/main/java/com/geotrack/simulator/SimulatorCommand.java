@@ -7,8 +7,6 @@ import com.geotrack.simulator.route.GpxParser;
 import com.geotrack.simulator.route.RouteReplayer;
 import io.quarkus.logging.Log;
 import jakarta.enterprise.context.Dependent;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import jakarta.inject.Inject;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
@@ -26,8 +24,6 @@ import java.util.concurrent.Future;
         subcommands = {LiveIngestCommand.class, ShipIngestCommand.class},
         description = "GeoTrack fleet simulation and GPX route replay")
 public class SimulatorCommand implements Runnable {
-
-    private static final Logger log = LoggerFactory.getLogger(SimulatorCommand.class);
 
     @Option(names = {"--fleet"}, description = "Run Newcastle demo fleet (4 vehicles)")
     boolean fleet;
@@ -78,7 +74,7 @@ public class SimulatorCommand implements Runnable {
         var simulator = new FleetSimulator(speedMultiplier).withNewcastleFleet();
         var futures = simulator.simulate(position -> {
             if (dryRun) {
-                log.info("[{}] {}, {} | speed={} km/h heading={}°",
+                System.out.printf("[%s] %.6f, %.6f | speed=%.1f km/h heading=%.0f°%n",
                         position.assetId(), position.latitude(), position.longitude(),
                         position.speed(), position.heading());
             } else {
@@ -109,7 +105,7 @@ public class SimulatorCommand implements Runnable {
 
             new RouteReplayer(route, assetId, speedMultiplier).replay(position -> {
                 if (dryRun) {
-                    log.info("[{}] {}, {} | speed={} km/h",
+                    System.out.printf("[%s] %.6f, %.6f | speed=%.1f km/h%n",
                             position.assetId(), position.latitude(), position.longitude(), position.speed());
                 } else {
                     kafkaProducer.send(position);
