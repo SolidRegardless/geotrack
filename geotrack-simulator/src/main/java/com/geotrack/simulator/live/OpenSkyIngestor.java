@@ -86,6 +86,10 @@ public class OpenSkyIngestor {
             Log.infof("✈ Ingested %d aircraft positions from OpenSky", count);
             return count;
 
+        } catch (InterruptedException e) {
+            Log.errorf(e, "Failed to poll OpenSky API");
+            Thread.currentThread().interrupt();
+            return 0;
         } catch (Exception e) {
             Log.errorf(e, "Failed to poll OpenSky API");
             return 0;
