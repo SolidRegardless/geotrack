@@ -54,8 +54,16 @@ public class PositionCommandService {
             throw new IllegalArgumentException("Position at Null Island (0,0) is likely invalid data");
         }
 
+        // Support both UUID and string asset IDs (e.g. "TYNE-BUS-01")
+        UUID assetUuid;
+        try {
+            assetUuid = UUID.fromString(command.assetId());
+        } catch (IllegalArgumentException e) {
+            assetUuid = UUID.nameUUIDFromBytes(command.assetId().getBytes());
+        }
+
         PositionEntity entity = PositionEntity.fromCoordinates(
-                UUID.fromString(command.assetId()),
+                assetUuid,
                 command.longitude(),
                 command.latitude(),
                 command.timestamp()

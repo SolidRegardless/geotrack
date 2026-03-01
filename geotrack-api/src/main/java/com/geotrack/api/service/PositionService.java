@@ -53,9 +53,16 @@ public class PositionService {
             throw new IllegalArgumentException("Position at Null Island (0,0) is likely invalid data");
         }
 
-        // Create and persist entity
+        // Create and persist entity — support both UUID and string asset IDs
+        UUID assetUuid;
+        try {
+            assetUuid = UUID.fromString(request.assetId());
+        } catch (IllegalArgumentException e) {
+            assetUuid = UUID.nameUUIDFromBytes(request.assetId().getBytes());
+        }
+
         PositionEntity entity = PositionEntity.fromCoordinates(
-                UUID.fromString(request.assetId()),
+                assetUuid,
                 request.longitude(),
                 request.latitude(),
                 request.timestamp()
@@ -86,9 +93,18 @@ public class PositionService {
                 .toList();
     }
 
-    public List<PositionResponse> getPositionHistory(UUID assetId, Instant from, Instant to, int limit) {
+    public List<PositionResponse> getPositionHistory(String assetIdStr, Instant from, Instant to, int limit) {
         if (from == null) from = Instant.now().minusSeconds(86400); // Default: last 24h
         if (to == null) to = Instant.now();
+
+        // Try parsing as UUID first; if not a UUID, derive one from the string
+        // (same approach as WebSocketBridge for simulator asset IDs like "TYNE-BUS-01")
+        UUID assetId;
+        try {
+            assetId = UUID.fromString(assetIdStr);
+        } catch (IllegalArgumentException e) {
+            assetId = UUID.nameUUIDFromBytes(assetIdStr.getBytes());
+        }
 
         return positionRepository.findByAssetAndTimeRange(assetId, from, to, limit)
                 .stream()

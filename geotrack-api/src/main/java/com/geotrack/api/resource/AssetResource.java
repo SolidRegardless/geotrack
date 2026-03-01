@@ -85,7 +85,7 @@ public class AssetResource {
     @Path("/{id}/positions")
     @Operation(summary = "Get position history for an asset")
     public List<PositionResponse> getPositionHistory(
-            @PathParam("id") UUID assetId,
+            @PathParam("id") String assetId,
             @QueryParam("from") Instant from,
             @QueryParam("to") Instant to,
             @QueryParam("limit") @DefaultValue("1000") int limit) {
