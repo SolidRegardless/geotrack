@@ -53,35 +53,37 @@ public class FleetSimulator {
      * Run the simulation — each vehicle replays its route on a virtual thread.
      */
     public List<Future<Void>> simulate(Consumer<Position> positionConsumer) {
-        ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor();
-
-        Log.infof("Starting fleet simulation: %d vehicles at %.1f× speed", vehicles.size(), speedMultiplier);
-
-        List<Future<Void>> futures = new ArrayList<>(vehicles.stream()
-                .map(vehicle -> executor.submit(() -> {
-                    Thread.currentThread().setName("sim-" + vehicle.assetId());
-                    Log.infof("Vehicle %s (%s) [%s] starting route with %d waypoints",
-                            vehicle.assetId(), vehicle.name(), vehicle.assetType(), vehicle.route().size());
-                    try {
-                        new RouteReplayer(vehicle.route(), vehicle.assetId(), speedMultiplier)
-                                .replay(positionConsumer);
-                    } catch (InterruptedException e) {
-                        Thread.currentThread().interrupt();
-                        Log.warnf("Vehicle %s interrupted", vehicle.assetId());
-                    }
-                    return (Void) null;
-                }))
-                .toList());
-
-        executor.shutdown();
+        final ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor();
         try {
-            if (!executor.awaitTermination(10, TimeUnit.SECONDS)) {
+            Log.infof("Starting fleet simulation: %d vehicles at %.1f× speed", vehicles.size(), speedMultiplier);
+
+            List<Future<Void>> futures = new ArrayList<>(vehicles.stream()
+                    .map(vehicle -> executor.submit(() -> {
+                        Thread.currentThread().setName("sim-" + vehicle.assetId());
+                        Log.infof("Vehicle %s (%s) [%s] starting route with %d waypoints",
+                                vehicle.assetId(), vehicle.name(), vehicle.assetType(), vehicle.route().size());
+                        try {
+                            new RouteReplayer(vehicle.route(), vehicle.assetId(), speedMultiplier)
+                                    .replay(positionConsumer);
+                        } catch (InterruptedException e) {
+                            Thread.currentThread().interrupt();
+                            Log.warnf("Vehicle %s interrupted", vehicle.assetId());
+                        }
+                        return (Void) null;
+                    }))
+                    .toList());
+
+            return futures;
+        } finally {
+            executor.shutdown();
+            try {
+                if (!executor.awaitTermination(10, TimeUnit.SECONDS)) {
+                    executor.shutdownNow();
+                }
+            } catch (InterruptedException e) {
                 executor.shutdownNow();
+                Thread.currentThread().interrupt();
             }
-        } catch (InterruptedException e) {
-            executor.shutdownNow();
-            Thread.currentThread().interrupt();
         }
-        return futures;
     }
 }
