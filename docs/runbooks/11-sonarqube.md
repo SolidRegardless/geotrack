@@ -175,15 +175,40 @@ mvn sonar:sonar \
 Spin up a temporary SonarQube for a one-off local scan:
 
 ```bash
-# Start SonarQube (needs ~4 GB RAM allocated to Docker)
+# 1. Start SonarQube (needs ~4 GB RAM allocated to Docker)
 docker run -d --name sonarqube -p 9000:9000 sonarqube:lts-community
 
-# Wait for startup (~60-90 seconds), then scan
-mvn sonar:sonar -Dsonar.host.url=http://localhost:9000 -Dsonar.token=<generated-token>
+# 2. Wait for startup (~60-90 seconds)
+#    Check status: curl http://localhost:9000/api/system/status
+#    Wait until: {"status":"UP"}
 
-# Clean up
+# 3. Change default admin password (REQUIRED on SonarQube 9.9+)
+#    Default credentials: admin/admin
+#    SonarQube 9.9+ forces a password change before API tokens work
+curl -u admin:admin -X POST \
+  "http://localhost:9000/api/users/change_password" \
+  -d "login=admin&previousPassword=admin&password=geotrack123"
+
+# 4. Generate an API token
+curl -u admin:geotrack123 -X POST \
+  "http://localhost:9000/api/user_tokens/generate" \
+  -d "name=geotrack-scan"
+# Copy the "token" value from the JSON response
+
+# 5. Run the scan
+mvn sonar:sonar \
+  -Dsonar.host.url=http://localhost:9000 \
+  -Dsonar.login=<token-from-step-4> \
+  -Dsonar.projectKey=geotrack \
+  -Dsonar.projectName=GeoTrack
+
+# 6. View results at: http://localhost:9000/dashboard?id=geotrack
+
+# 7. Clean up when done
 docker stop sonarqube && docker rm sonarqube
 ```
+
+> ⚠️ **Note:** Using `-Dsonar.token=` instead of `-Dsonar.login=` may not work with the Maven plugin version auto-resolved by the reactor. Use `-Dsonar.login=` with the token value for reliable authentication.
 
 ### View Reports
 
