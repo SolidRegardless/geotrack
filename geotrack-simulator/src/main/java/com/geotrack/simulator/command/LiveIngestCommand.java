@@ -47,12 +47,11 @@ public class LiveIngestCommand implements Runnable {
         final OpenSkyIngestor ingestor = new OpenSkyIngestor(kafkaProducer, bbox);
         final CountDownLatch shutdownLatch = new CountDownLatch(1);
 
-        ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor(r -> {
+        final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor(r -> {
             Thread t = new Thread(r, "opensky-poller");
             t.setDaemon(true);
             return t;
         });
-
         try {
             // Graceful shutdown on SIGINT
             Runtime.getRuntime().addShutdownHook(new Thread(() -> {
