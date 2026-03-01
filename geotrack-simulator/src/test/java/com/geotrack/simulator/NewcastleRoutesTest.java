@@ -31,7 +31,7 @@ class NewcastleRoutesTest {
     @DisplayName("route has valid waypoints")
     void routeHasValidWaypoints(NamedRoute route) {
         assertThat(route.points()).isNotEmpty();
-        assertThat(route.points().size()).isGreaterThanOrEqualTo(5);
+        assertThat(route.points()).hasSizeGreaterThanOrEqualTo(5);
 
         for (RoutePoint p : route.points()) {
             // Wider range to include Durham (train) and approaches (plane)

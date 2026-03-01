@@ -95,7 +95,8 @@ class GpxParserTest {
     @Test
     @DisplayName("throws on invalid XML")
     void throwsOnInvalidXml() {
-        assertThatThrownBy(() -> parser.parse(toStream("not xml")))
+        var stream = toStream("not xml");
+        assertThatThrownBy(() -> parser.parse(stream))
                 .isInstanceOf(RuntimeException.class)
                 .hasMessageContaining("Failed to parse GPX");
     }

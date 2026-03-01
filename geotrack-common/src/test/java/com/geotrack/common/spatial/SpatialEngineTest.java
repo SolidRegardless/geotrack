@@ -96,11 +96,12 @@ class SpatialEngineTest {
         @Test
         @DisplayName("Should reject polygon with fewer than 3 points")
         void shouldRejectTooFewPoints() {
+            var tooFewPoints = List.of(
+                    new double[]{-2.0, 54.0},
+                    new double[]{-1.0, 54.0}
+            );
             assertThrows(IllegalArgumentException.class, () ->
-                    engine.createPolygon(List.of(
-                            new double[]{-2.0, 54.0},
-                            new double[]{-1.0, 54.0}
-                    ))
+                    engine.createPolygon(tooFewPoints)
             );
         }
 
