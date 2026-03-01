@@ -1,0 +1,17 @@
+{{- if .Values.redis.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "geotrack.fullname" . }}-redis
+  labels:
+    {{- include "geotrack.labels" . | nindent 4 }}
+    app.kubernetes.io/component: redis
+spec:
+  ports:
+    - port: {{ .Values.redis.port }}
+      targetPort: redis
+      name: redis
+  selector:
+    app.kubernetes.io/component: redis
+  clusterIP: None
+{{- end }}

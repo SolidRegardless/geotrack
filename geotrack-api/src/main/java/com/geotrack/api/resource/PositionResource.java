@@ -37,6 +37,12 @@ public class PositionResource {
     }
 
     @GET
+    @Operation(summary = "Get all recent positions (defaults to latest per asset)")
+    public List<PositionResponse> getAllPositions() {
+        return positionService.getLatestPositions();
+    }
+
+    @GET
     @Path("/latest")
     @Operation(summary = "Get latest position per asset")
     public List<PositionResponse> getLatestPositions() {

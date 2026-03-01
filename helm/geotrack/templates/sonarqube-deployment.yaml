@@ -1,0 +1,44 @@
+{{- if .Values.sonarqube.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "geotrack.fullname" . }}-sonarqube
+  labels:
+    {{- include "geotrack.labels" . | nindent 4 }}
+    app.kubernetes.io/component: sonarqube
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/component: sonarqube
+  template:
+    metadata:
+      labels:
+        {{- include "geotrack.labels" . | nindent 8 }}
+        app.kubernetes.io/component: sonarqube
+    spec:
+      containers:
+        - name: sonarqube
+          image: "{{ .Values.sonarqube.image.repository }}:{{ .Values.sonarqube.image.tag }}"
+          imagePullPolicy: {{ .Values.global.imagePullPolicy }}
+          ports:
+            - containerPort: {{ .Values.sonarqube.port }}
+              name: http
+          env:
+            - name: SONAR_ES_BOOTSTRAP_CHECKS_DISABLE
+              value: "true"
+          resources:
+            {{- toYaml .Values.sonarqube.resources | nindent 12 }}
+          readinessProbe:
+            httpGet:
+              path: /api/system/status
+              port: http
+            initialDelaySeconds: 60
+            periodSeconds: 30
+          livenessProbe:
+            httpGet:
+              path: /api/system/status
+              port: http
+            initialDelaySeconds: 120
+            periodSeconds: 30
+{{- end }}

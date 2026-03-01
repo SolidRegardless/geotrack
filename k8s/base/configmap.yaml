@@ -13,4 +13,5 @@ data:
   OPENSKY_ENABLED: "true"
   AISSTREAM_ENABLED: "true"
   QUARKUS_HTTP_PORT: "8080"
+  QUARKUS_REDIS_HOSTS: "redis://geotrack-redis:6379"
   JAVA_OPTS: "-XX:+UseG1GC -XX:MaxRAMPercentage=75.0"

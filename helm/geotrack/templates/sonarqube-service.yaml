@@ -1,0 +1,20 @@
+{{- if .Values.sonarqube.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "geotrack.fullname" . }}-sonarqube
+  labels:
+    {{- include "geotrack.labels" . | nindent 4 }}
+    app.kubernetes.io/component: sonarqube
+spec:
+  type: {{ .Values.sonarqube.service.type }}
+  ports:
+    - port: {{ .Values.sonarqube.port }}
+      targetPort: http
+      {{- if eq .Values.sonarqube.service.type "NodePort" }}
+      nodePort: {{ .Values.sonarqube.service.nodePort }}
+      {{- end }}
+      name: http
+  selector:
+    app.kubernetes.io/component: sonarqube
+{{- end }}

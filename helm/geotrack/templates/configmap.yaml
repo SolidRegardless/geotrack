@@ -14,3 +14,6 @@ data:
   QUARKUS_HTTP_HOST: "0.0.0.0"
   OPENSKY_ENABLED: {{ .Values.config.openskyEnabled | quote }}
   AISSTREAM_ENABLED: {{ .Values.config.aisstreamEnabled | quote }}
+  {{- if .Values.redis.enabled }}
+  QUARKUS_REDIS_HOSTS: "redis://{{ include "geotrack.fullname" . }}-redis:{{ .Values.redis.port }}"
+  {{- end }}

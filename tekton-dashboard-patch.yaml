@@ -1,0 +1,8 @@
+spec:
+  type: NodePort
+  ports:
+    - name: http
+      port: 9097
+      targetPort: 9097
+      nodePort: 30090
+      protocol: TCP

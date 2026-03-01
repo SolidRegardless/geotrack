@@ -6,8 +6,10 @@ import com.geotrack.api.mapper.PositionMapper;
 import com.geotrack.api.model.PositionEntity;
 import com.geotrack.api.repository.PositionRepository;
 import com.geotrack.common.validation.CoordinateValidator;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
+import io.quarkus.logging.Log;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
@@ -18,18 +20,25 @@ import java.util.UUID;
 
 /**
  * Business logic for position ingestion and retrieval.
+ * Uses Redis caching for latest positions per asset.
  */
 @ApplicationScoped
 public class PositionService {
 
     private final PositionRepository positionRepository;
     private final PositionMapper positionMapper;
+    private final PositionCacheService cacheService;
+    private final ObjectMapper objectMapper;
     private final Counter positionsProcessed;
 
     @Inject
-    public PositionService(PositionRepository positionRepository, PositionMapper positionMapper, MeterRegistry meterRegistry) {
+    public PositionService(PositionRepository positionRepository, PositionMapper positionMapper,
+                           PositionCacheService cacheService, ObjectMapper objectMapper,
+                           MeterRegistry meterRegistry) {
         this.positionRepository = positionRepository;
         this.positionMapper = positionMapper;
+        this.cacheService = cacheService;
+        this.objectMapper = objectMapper;
         this.positionsProcessed = Counter.builder("geotrack.positions.processed")
                 .description("Total positions processed")
                 .register(meterRegistry);
@@ -58,7 +67,16 @@ public class PositionService {
         positionRepository.persist(entity);
         positionsProcessed.increment();
 
-        return positionMapper.toResponse(entity);
+        PositionResponse response = positionMapper.toResponse(entity);
+
+        // Cache latest position in Redis
+        try {
+            cacheService.cacheLatestPosition(request.assetId(), objectMapper.writeValueAsString(response));
+        } catch (Exception e) {
+            Log.warnf("Failed to cache position for asset %s: %s", request.assetId(), e.getMessage());
+        }
+
+        return response;
     }
 
     public List<PositionResponse> getLatestPositions() {

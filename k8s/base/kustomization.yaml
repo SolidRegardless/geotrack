@@ -24,3 +24,7 @@ resources:
   - postgres/service.yaml
   - kafka/statefulset.yaml
   - kafka/service.yaml
+  - redis/statefulset.yaml
+  - redis/service.yaml
+  - sonarqube/deployment.yaml
+  - sonarqube/service.yaml

@@ -118,6 +118,37 @@ kafka:
       cpu: "2"
       memory: 2Gi
 
+redis:
+  enabled: true
+  image:
+    repository: redis
+    tag: "7-alpine"
+  port: 6379
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 256Mi
+
+sonarqube:
+  enabled: true
+  image:
+    repository: sonarqube
+    tag: "10-community"
+  port: 9000
+  service:
+    type: NodePort
+    nodePort: 30900
+  resources:
+    requests:
+      cpu: 500m
+      memory: 1Gi
+    limits:
+      cpu: "2"
+      memory: 2Gi
+
 ingress:
   enabled: false
   className: nginx
